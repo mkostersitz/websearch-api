@@ -61,6 +61,10 @@ def create_application() -> FastAPI:
     # Include routers
     app.include_router(health.router, prefix="/api/v1", tags=["health"])
     
+    # Import clients router lazily to avoid circular imports
+    from src.api.routes import clients
+    app.include_router(clients.router, prefix="/api/v1", tags=["clients"])
+    
     # Exception handlers
     @app.exception_handler(Exception)
     async def global_exception_handler(request, exc):
