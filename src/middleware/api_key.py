@@ -1,7 +1,8 @@
 """API Key authentication middleware."""
 
 from typing import Optional
-from fastapi import Request, HTTPException, status
+from datetime import datetime
+from fastapi import Request, HTTPException, status, Depends
 from fastapi.security import APIKeyHeader
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from loguru import logger
@@ -53,7 +54,7 @@ async def verify_api_key(api_key: str) -> Optional[dict]:
         return None
 
 
-async def get_api_key_client(api_key: Optional[str] = None) -> dict:
+async def get_api_key_client(api_key: Optional[str] = Depends(api_key_header)) -> dict:
     """
     FastAPI dependency to get and verify API key.
     
