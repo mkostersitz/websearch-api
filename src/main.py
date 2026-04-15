@@ -9,7 +9,9 @@ from loguru import logger
 from src.core.config import settings
 from src.core.logging import configure_logging
 from src.core.database import Database
+from src.core.telemetry import configure_opentelemetry, instrument_app
 from src.middleware.logging import LoggingMiddleware
+from src.middleware.tracing import TracingMiddleware
 from src.api.routes import health
 
 
@@ -20,6 +22,9 @@ async def lifespan(app: FastAPI):
     configure_logging()
     logger.info(f"Starting {settings.app_name} v{settings.app_version}")
     logger.info(f"Environment: {settings.environment}")
+    
+    # Configure OpenTelemetry
+    configure_opentelemetry()
     
     # Connect to databases
     await Database.connect()
@@ -57,6 +62,10 @@ def create_application() -> FastAPI:
     
     # Custom middleware
     app.add_middleware(LoggingMiddleware)
+    app.add_middleware(TracingMiddleware)
+    
+    # Instrument with OpenTelemetry
+    instrument_app(app)
     
     # Include routers
     app.include_router(health.router, prefix="/api/v1", tags=["health"])
