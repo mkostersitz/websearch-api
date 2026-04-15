@@ -14,6 +14,8 @@ class ClientCreateRequest(BaseModel):
     quota_per_day: int = Field(default=1000, ge=0)
     quota_per_month: int = Field(default=30000, ge=0)
     metadata: Dict[str, Any] = Field(default_factory=dict)
+    # For mTLS clients
+    client_cert_pem: Optional[str] = Field(None, description="PEM-encoded client certificate (for mTLS clients)")
 
 
 class ClientCreateResponse(BaseModel):

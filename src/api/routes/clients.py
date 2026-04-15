@@ -39,7 +39,8 @@ async def create_client(
             client_type=request.client_type,
             quota_per_day=request.quota_per_day,
             quota_per_month=request.quota_per_month,
-            metadata=request.metadata
+            metadata=request.metadata,
+            client_cert_pem=request.client_cert_pem
         )
         
         return ClientCreateResponse(

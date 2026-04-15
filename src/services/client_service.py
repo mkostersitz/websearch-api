@@ -9,6 +9,7 @@ from loguru import logger
 from src.models.database import Client, ClientType
 from src.utils.auth import generate_api_key, hash_api_key
 from src.core.database import Database
+from src.middleware.mtls import extract_cert_info
 
 
 class ClientService:
@@ -21,7 +22,8 @@ class ClientService:
         client_type: ClientType,
         quota_per_day: int = 1000,
         quota_per_month: int = 30000,
-        metadata: Optional[dict] = None
+        metadata: Optional[dict] = None,
+        client_cert_pem: Optional[str] = None
     ) -> tuple[Client, Optional[str]]:
         """
         Create a new API client.
@@ -33,6 +35,7 @@ class ClientService:
             quota_per_day: Daily search quota
             quota_per_month: Monthly search quota
             metadata: Additional metadata
+            client_cert_pem: PEM-encoded client certificate (for mTLS)
             
         Returns:
             Tuple of (Client object, API key if type is api_key else None)
@@ -42,11 +45,31 @@ class ClientService:
         client_id = str(uuid.uuid4())
         api_key = None
         api_key_hash = None
+        client_cert_cn = None
+        client_cert_serial = None
+        client_cert_fingerprint = None
         
         # Generate API key if needed
         if client_type == ClientType.API_KEY:
             api_key = generate_api_key()
             api_key_hash = hash_api_key(api_key)
+        
+        # Extract certificate info if provided
+        if client_type == ClientType.MTLS and client_cert_pem:
+            cert_info = extract_cert_info(client_cert_pem)
+            client_cert_cn = cert_info["common_name"]
+            client_cert_serial = cert_info["serial_number"]
+            client_cert_fingerprint = cert_info["fingerprint"]
+            
+            # Store additional cert info in metadata
+            if metadata is None:
+                metadata = {}
+            metadata.update({
+                "cert_issuer": cert_info["issuer"],
+                "cert_subject": cert_info["subject"],
+                "cert_not_valid_before": cert_info["not_valid_before"],
+                "cert_not_valid_after": cert_info["not_valid_after"]
+            })
         
         client = Client(
             client_id=client_id,
@@ -54,6 +77,9 @@ class ClientService:
             client_type=client_type,
             owner_id=owner_id,
             api_key_hash=api_key_hash,
+            client_cert_cn=client_cert_cn,
+            client_cert_serial=client_cert_serial,
+            client_cert_fingerprint=client_cert_fingerprint,
             quota_per_day=quota_per_day,
             quota_per_month=quota_per_month,
             metadata=metadata or {}
