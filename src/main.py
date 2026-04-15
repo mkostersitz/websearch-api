@@ -29,12 +29,17 @@ async def lifespan(app: FastAPI):
     # Connect to databases
     await Database.connect()
     
+    # Initialize rate limiter
+    from src.services.rate_limiter import rate_limiter
+    await rate_limiter.connect()
+    
     logger.info(f"Application started successfully on {settings.host}:{settings.port}")
     
     yield
     
     # Shutdown
     logger.info("Shutting down application")
+    await rate_limiter.disconnect()
     await Database.disconnect()
     logger.info("Application shutdown complete")
 
@@ -71,8 +76,9 @@ def create_application() -> FastAPI:
     app.include_router(health.router, prefix="/api/v1", tags=["health"])
     
     # Import clients router lazily to avoid circular imports
-    from src.api.routes import clients
+    from src.api.routes import clients, search
     app.include_router(clients.router, prefix="/api/v1", tags=["clients"])
+    app.include_router(search.router, prefix="/api/v1", tags=["search"])
     
     # Exception handlers
     @app.exception_handler(Exception)
