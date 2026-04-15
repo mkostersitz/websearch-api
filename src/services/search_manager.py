@@ -20,6 +20,11 @@ class SearchProviderManager:
     
     def _initialize_providers(self):
         """Initialize available search providers."""
+        # Add DuckDuckGo provider (no API key needed - always available!)
+        from src.services.duckduckgo_search import DuckDuckGoSearchProvider
+        duckduckgo = DuckDuckGoSearchProvider()
+        self.providers.append(duckduckgo)
+        
         # Add Google provider
         google = GoogleSearchProvider()
         self.providers.append(google)
