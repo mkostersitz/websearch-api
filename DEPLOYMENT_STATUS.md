@@ -127,16 +127,27 @@ POST /api/v1/clients
 
 ## Search Providers
 
+### DuckDuckGo ✅ WORKING (NO API KEY REQUIRED!)
+**Status:** Fully operational - works out of the box!  
+**Cost:** FREE - unlimited searches  
+**API Key:** Not required  
+
+**DuckDuckGo is now the primary search provider!** No configuration needed.
+
 ### Google Custom Search ⚠️
 **Status:** API Key configured, needs Search Engine ID  
 **API Key:** AIzaSyBrjXULfpEFRibUJ2aOjIEi6On_xf0PIaI  
 **Missing:** GOOGLE_SEARCH_ENGINE_ID (CX)
 
+**Note:** Google deprecated "Search the entire web" feature, so custom search engines  
+must now target specific sites. DuckDuckGo is recommended as the primary provider.
+
 **To Enable:**
 1. Create Custom Search Engine at https://programmablesearchengine.google.com/
-2. Get Search Engine ID
-3. Add to `.env` file
-4. Restart API
+2. Configure to search specific sites (entire web no longer available)
+3. Get Search Engine ID
+4. Add to `.env` file
+5. Restart API
 
 ### Bing Search 📋
 **Status:** Not configured  
