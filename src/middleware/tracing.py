@@ -1,14 +1,19 @@
 """OpenTelemetry tracing middleware and utilities."""
 
 import time
-from typing import Callable
+from typing import Callable, Optional
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-from opentelemetry import trace
-from opentelemetry.trace import Status, StatusCode
 from loguru import logger
 
-from src.core.telemetry import get_tracer
+try:
+    from opentelemetry import trace
+    from opentelemetry.trace import Status, StatusCode
+    from src.core.telemetry import get_tracer
+    OTEL_AVAILABLE = True
+except:
+    OTEL_AVAILABLE = False
+    trace = None
 
 
 class TracingMiddleware(BaseHTTPMiddleware):
@@ -16,10 +21,14 @@ class TracingMiddleware(BaseHTTPMiddleware):
     
     def __init__(self, app):
         super().__init__(app)
-        self.tracer = get_tracer()
+        self.tracer = get_tracer() if OTEL_AVAILABLE else None
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Process request with tracing."""
+        
+        if not OTEL_AVAILABLE or not self.tracer:
+            # Skip tracing if not available
+            return await call_next(request)
         
         # Get current span (created by FastAPI instrumentor)
         current_span = trace.get_current_span()
@@ -79,7 +88,14 @@ def trace_function(name: str = None):
             ...
     """
     def decorator(func):
+        if not OTEL_AVAILABLE:
+            # Return function as-is if OTEL not available
+            return func
+        
         tracer = get_tracer()
+        if not tracer:
+            return func
+        
         span_name = name or func.__name__
         
         async def async_wrapper(*args, **kwargs):
