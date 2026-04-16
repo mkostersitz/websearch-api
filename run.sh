@@ -1,31 +1,26 @@
 #!/bin/bash
-
 # WebSearch API Run Script
-# Convenient commands for managing the WebSearch API
 
 set -e
+cd "$(dirname "$0")"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
-
-# Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 ADMIN_API_KEY="GA_Incg4zEhpK-65G6PwL499t2kXvH2Cs-hWf6udtZU"
 
 show_help() {
     cat << EOF
-${BLUE}═══════════════════════════════════════════════════════════${NC}
-${GREEN}WebSearch API Management Script${NC}
-${BLUE}═══════════════════════════════════════════════════════════${NC}
+===============================================================
+        WebSearch API Management Script
+===============================================================
 
 Usage: ./run.sh [command]
 
-${YELLOW}Commands:${NC}
+Commands:
   start         Start MongoDB, Redis, and API server
   stop          Stop all services
   restart       Restart all services
@@ -39,29 +34,29 @@ ${YELLOW}Commands:${NC}
   shell         Open API shell (poetry shell)
   install       Install dependencies
   clean         Stop and remove all data
-  help          Show this help message
+  help          Show this help
 
-${YELLOW}Examples:${NC}
+Examples:
   ./run.sh start              # Start everything
   ./run.sh api                # Start just the API
   ./run.sh test               # Test search endpoint
   ./run.sh logs               # Follow API logs
 
-${YELLOW}Access URLs:${NC}
+Access URLs:
   API:           http://localhost:8000
   API Docs:      http://localhost:8000/docs
   Health:        http://localhost:8000/health
 
-${YELLOW}Admin API Key:${NC}
+Admin API Key:
   ${ADMIN_API_KEY}
 
-${BLUE}═══════════════════════════════════════════════════════════${NC}
+===============================================================
 EOF
 }
 
 check_poetry() {
     if ! command -v poetry &> /dev/null; then
-        echo -e "${RED}✗ Poetry is not installed${NC}"
+        echo -e "${RED}[ERROR] Poetry is not installed${NC}"
         echo "Install: curl -sSL https://install.python-poetry.org | python3 -"
         exit 1
     fi
@@ -69,12 +64,12 @@ check_poetry() {
 
 check_docker() {
     if ! command -v docker &> /dev/null; then
-        echo -e "${RED}✗ Docker is not installed${NC}"
+        echo -e "${RED}[ERROR] Docker is not installed${NC}"
         exit 1
     fi
     
     if ! docker info &> /dev/null; then
-        echo -e "${RED}✗ Docker daemon is not running${NC}"
+        echo -e "${RED}[ERROR] Docker daemon is not running${NC}"
         exit 1
     fi
 }
@@ -83,7 +78,7 @@ cmd_install() {
     echo -e "${BLUE}Installing dependencies...${NC}"
     check_poetry
     poetry install --no-interaction
-    echo -e "${GREEN}✓ Dependencies installed${NC}"
+    echo -e "${GREEN}[OK] Dependencies installed${NC}"
 }
 
 cmd_services() {
@@ -93,7 +88,7 @@ cmd_services() {
     docker-compose up -d mongodb redis
     
     echo ""
-    echo -e "${GREEN}✓ Services started${NC}"
+    echo -e "${GREEN}[OK] Services started${NC}"
     sleep 3
     cmd_status
 }
@@ -138,12 +133,12 @@ cmd_stop() {
     if [ -n "$API_PID" ]; then
         echo "Stopping API (PID: $API_PID)..."
         kill "$API_PID" 2>/dev/null || true
-        echo -e "${GREEN}✓ API stopped${NC}"
+        echo -e "${GREEN}[OK] API stopped${NC}"
     fi
     
     # Stop Docker services
     docker-compose down
-    echo -e "${GREEN}✓ Services stopped${NC}"
+    echo -e "${GREEN}[OK] Services stopped${NC}"
 }
 
 cmd_restart() {
@@ -154,9 +149,9 @@ cmd_restart() {
 }
 
 cmd_status() {
-    echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
-    echo -e "${GREEN}Service Status:${NC}"
-    echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
+    echo "==============================================================="
+    echo "Service Status:"
+    echo "==============================================================="
     
     # Check Docker services
     docker-compose ps 2>/dev/null || echo "No Docker services running"
@@ -165,9 +160,9 @@ cmd_status() {
     
     # Check API
     if pgrep -f "uvicorn src.main:app" > /dev/null; then
-        echo -e "${GREEN}✓ API Server: Running${NC}"
+        echo -e "${GREEN}[OK] API Server: Running${NC}"
     else
-        echo -e "${YELLOW}○ API Server: Stopped${NC}"
+        echo -e "${YELLOW}[ ] API Server: Stopped${NC}"
     fi
     
     echo ""
@@ -193,7 +188,7 @@ cmd_test() {
         -s | python3 -m json.tool
     
     echo ""
-    echo -e "${GREEN}✓ Test complete${NC}"
+    echo -e "${GREEN}[OK] Test complete${NC}"
 }
 
 cmd_health() {
@@ -202,10 +197,10 @@ cmd_health() {
     response=$(curl -s http://localhost:8000/health)
     
     if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✓ API is healthy${NC}"
+        echo -e "${GREEN}[OK] API is healthy${NC}"
         echo "$response" | python3 -m json.tool 2>/dev/null || echo "$response"
     else
-        echo -e "${RED}✗ API is not responding${NC}"
+        echo -e "${RED}[ERROR] API is not responding${NC}"
         echo "Make sure the API is running: ./run.sh start"
         exit 1
     fi
@@ -217,7 +212,7 @@ cmd_admin() {
     
     poetry run python scripts/create_admin.py
     
-    echo -e "${GREEN}✓ Admin user created${NC}"
+    echo -e "${GREEN}[OK] Admin user created${NC}"
 }
 
 cmd_shell() {
@@ -235,59 +230,25 @@ cmd_clean() {
         cmd_stop
         docker-compose down -v
         rm -rf logs/*
-        echo -e "${GREEN}✓ All data cleaned${NC}"
+        echo -e "${GREEN}[OK] All data cleaned${NC}"
     else
         echo "Cancelled"
     fi
 }
 
-# Main script
 case "${1:-help}" in
-    start)
-        cmd_start
-        ;;
-    stop)
-        cmd_stop
-        ;;
-    restart)
-        cmd_restart
-        ;;
-    api)
-        cmd_api
-        ;;
-    services)
-        cmd_services
-        ;;
-    status)
-        cmd_status
-        ;;
-    logs)
-        cmd_logs
-        ;;
-    test)
-        cmd_test
-        ;;
-    health)
-        cmd_health
-        ;;
-    admin)
-        cmd_admin
-        ;;
-    shell)
-        cmd_shell
-        ;;
-    install)
-        cmd_install
-        ;;
-    clean)
-        cmd_clean
-        ;;
-    help|--help|-h)
-        show_help
-        ;;
-    *)
-        echo -e "${RED}Unknown command: $1${NC}"
-        echo "Run './run.sh help' for usage"
-        exit 1
-        ;;
+    start) cmd_start ;;
+    stop) cmd_stop ;;
+    restart) cmd_restart ;;
+    api) cmd_api ;;
+    services) cmd_services ;;
+    status) cmd_status ;;
+    logs) cmd_logs ;;
+    test) cmd_test ;;
+    health) cmd_health ;;
+    admin) cmd_admin ;;
+    shell) cmd_shell ;;
+    install) cmd_install ;;
+    clean) cmd_clean ;;
+    *) show_help ;;
 esac
