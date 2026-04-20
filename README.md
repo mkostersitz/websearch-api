@@ -9,24 +9,54 @@ Enterprise-grade web search API designed for AI agents with comprehensive securi
 - 🛡️ **Enterprise Guardrails**: Content filtering, parental controls, domain policies
 - 🚦 **Rate Limiting**: Distributed throttling with Redis (60 req/min default)
 - 🔄 **Provider Fallback**: Multi-provider search (Google, Bing) with automatic failover
-- 📈 **Admin Dashboard**: React-based UI for policy and user management (Coming Soon)
+- 📈 **Admin Dashboard**: React-based UI with Settings, Analytics, Client Management
+- ⚙️ **Pinnable Sidebar**: Customizable navigation with persistent state
 - 🔍 **Audit Logging**: Complete audit trail for compliance
 - ⚡ **High Performance**: Async operations, caching, connection pooling
+- ☸️ **Kubernetes Ready**: Production deployment with ingress, HA, and auto-scaling
 
 ## 🚀 Quick Start
 
-### Prerequisites
+**Choose your deployment mode:**
 
+### Local Docker (Development)
+```bash
+# Install and start
+./run.sh install
+./run.sh start
+
+# Access API
+curl http://localhost:8000/api/v1/health
+```
+
+### Kubernetes (Production)
+```bash
+# Deploy to Kubernetes
+DEPLOY_MODE=k8s ./run.sh start
+
+# Access via ingress
+open http://localhost/
+```
+
+**📖 See [DEPLOYMENT_MODES.md](DEPLOYMENT_MODES.md) for complete guide**
+
+## 📋 Prerequisites
+
+**For Local Docker:**
 - Python 3.11+
 - Docker & Docker Compose
 - Poetry (install: `curl -sSL https://install.python-poetry.org | python3 -`)
 
+**For Kubernetes:**
+- Kubernetes cluster (Docker Desktop, minikube, or cloud)
+- kubectl configured
+- Docker for building images
+
+## 🔧 Configuration
+
 ### 1. Clone and Setup
 
 ```bash
-# Install dependencies
-poetry install
-
 # Copy environment file
 cp .env.example .env
 
@@ -36,56 +66,162 @@ cp .env.example .env
 # - Optionally: OKTA_DOMAIN, ENTRA_TENANT_ID, etc.
 ```
 
-### 2. Start Services
+### 2. Choose Deployment Mode
+
+#### Option A: Local Docker (Development)
 
 ```bash
+# Install dependencies
+./run.sh install
+
 # Start all services (MongoDB, Redis, Jaeger, OTEL, Prometheus, Grafana)
-docker-compose up -d
+./run.sh start
 
 # Check services are running
-docker-compose ps
+./run.sh status
+```
+
+#### Option B: Kubernetes (Production)
+
+```bash
+# Deploy entire stack to K8s
+DEPLOY_MODE=k8s ./run.sh start
+
+# Check deployment status
+DEPLOY_MODE=k8s ./run.sh status
 ```
 
 ### 3. Initialize Database
 
+#### Local Docker Mode:
 ```bash
-# Create admin user and API key
-poetry run python scripts/create_admin.py
+# Create admin user
+./run.sh admin
 
-# Save the API key that's printed!
+# Login: admin / admin (change on first login)
 ```
 
-### 4. Run the API
+#### Kubernetes Mode:
+Admin user is created automatically during deployment.
+- Username: `admin`
+- Password: `admin` (change immediately)
 
-```bash
-# Development mode with auto-reload
-poetry run uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+### 4. Access the Application
 
-# Or using Docker
-docker-compose up api
-```
+#### Local Docker:
+- **API**: http://localhost:8000/api/v1/
+- **API Docs**: http://localhost:8000/docs
+- **Dashboard**: Deploy separately (see admin-dashboard/README.md)
+
+#### Kubernetes:
+- **Dashboard**: http://localhost/
+- **API**: http://localhost/api/v1/
+- **Monitoring**: Use `k8s/port-forward.sh` for Grafana/Jaeger/Prometheus
 
 ### 5. Test the API
 
 ```bash
-# Health check
-curl http://localhost:8000/api/v1/health
+# Local mode
+./run.sh test -q "OpenTelemetry" --pretty
 
-# Search (replace YOUR_API_KEY)
+# Kubernetes mode
+DEPLOY_MODE=k8s ./run.sh test -q "OpenTelemetry" --pretty
+
+# Manual curl test (Local)
 curl -X POST http://localhost:8000/api/v1/search \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "artificial intelligence", "max_results": 5}'
+
+# Manual curl test (Kubernetes)
+curl -X POST http://localhost/api/v1/search \
   -H "X-API-Key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"query": "artificial intelligence", "max_results": 5}'
 ```
 
-## 📚 API Documentation
+## 📚 Management Script (run.sh)
 
+The `run.sh` script supports both local Docker and Kubernetes deployments:
+
+```bash
+# Local Docker (default)
+./run.sh start          # Start all services
+./run.sh stop           # Stop all services
+./run.sh status         # Show status
+./run.sh logs           # View logs
+./run.sh test           # Test API
+./run.sh health         # Health check
+
+# Kubernetes
+DEPLOY_MODE=k8s ./run.sh start     # Deploy to K8s
+DEPLOY_MODE=k8s ./run.sh stop      # Stop K8s deployment
+DEPLOY_MODE=k8s ./run.sh status    # K8s status
+DEPLOY_MODE=k8s ./run.sh logs      # K8s logs
+DEPLOY_MODE=k8s ./run.sh test      # Test K8s API
+DEPLOY_MODE=k8s ./run.sh health    # K8s health check
+```
+
+**Local-only commands:**
+```bash
+./run.sh api            # Start API only (development)
+./run.sh services       # Start MongoDB/Redis only
+./run.sh admin          # Create admin user
+./run.sh shell          # Open Poetry shell
+./run.sh install        # Install dependencies
+```
+
+See `./run.sh help` or [DEPLOYMENT_MODES.md](DEPLOYMENT_MODES.md) for complete guide.
+
+## 🏗️ Architecture
+
+### Local Docker Mode
+```
+Browser
+   ↓
+localhost:8000 (API via Poetry/uvicorn)
+   ↓
+   ├─→ MongoDB (Docker, port 27017)
+   ├─→ Redis (Docker, port 6379)
+   ├─→ OTEL Collector → Jaeger/Prometheus
+   └─→ Grafana (monitoring)
+```
+
+### Kubernetes Mode
+```
+Browser (localhost:80)
+   ↓
+nginx-ingress-controller
+   ↓
+   ├─→ /api/v1/* → websearch-api (2 replicas)
+   └─→ /* → dashboard (2 replicas)
+   
+Internal Services:
+   ├─→ MongoDB (StatefulSet)
+   ├─→ Redis (Deployment)
+   ├─→ OTEL Collector
+   ├─→ Jaeger (distributed tracing)
+   ├─→ Prometheus (metrics)
+   └─→ Grafana (dashboards)
+```
+
+## 📖 API Documentation
+
+### Local Docker Mode
 Once running, visit:
-- **Swagger UI**: http://localhost:8000/docs
+- **API Docs (Swagger)**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 - **Jaeger UI**: http://localhost:16686 (distributed tracing)
 - **Prometheus**: http://localhost:9090 (metrics)
 - **Grafana**: http://localhost:3001 (dashboards, admin/admin)
+
+### Kubernetes Mode
+- **Dashboard**: http://localhost/
+- **API Docs (Swagger)**: http://localhost/api/v1/docs
+- **Monitoring**: Forward ports with `k8s/port-forward.sh`, then:
+  - **Jaeger UI**: http://localhost:16686
+  - **Prometheus**: http://localhost:9090
+  - **Grafana**: http://localhost:3001
 
 ## 🔑 API Endpoints
 

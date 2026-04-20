@@ -1,0 +1,96 @@
+{
+  "sections": [
+    {
+      "title": "Getting Started",
+      "icon": "PlayArrow",
+      "items": [
+        {
+          "title": "Overview",
+          "path": "index.md",
+          "description": "Introduction to WebSearch API"
+        },
+        {
+          "title": "Quick Start",
+          "path": "user/getting-started.md",
+          "description": "Get up and running in 5 minutes"
+        }
+      ]
+    },
+    {
+      "title": "User Guide",
+      "icon": "Person",
+      "items": [
+        {
+          "title": "Getting Started",
+          "path": "user/getting-started.md"
+        },
+        {
+          "title": "Authentication",
+          "path": "user/authentication.md"
+        },
+        {
+          "title": "Best Practices",
+          "path": "user/best-practices.md"
+        }
+      ]
+    },
+    {
+      "title": "API Reference",
+      "icon": "Code",
+      "items": [
+        {
+          "title": "API Endpoints",
+          "path": "api/reference.md"
+        }
+      ]
+    },
+    {
+      "title": "Admin Guide",
+      "icon": "AdminPanelSettings",
+      "items": [
+        {
+          "title": "Installation & Setup",
+          "path": "admin/installation.md"
+        },
+        {
+          "title": "User Management",
+          "path": "admin/user-management.md"
+        },
+        {
+          "title": "Policy Management",
+          "path": "admin/policy-management.md"
+        },
+        {
+          "title": "Monitoring",
+          "path": "admin/monitoring.md"
+        },
+        {
+          "title": "Security",
+          "path": "admin/security.md"
+        }
+      ]
+    },
+    {
+      "title": "Guides",
+      "icon": "MenuBook",
+      "items": [
+        {
+          "title": "Search Policies",
+          "path": "guides/search-policies.md"
+        },
+        {
+          "title": "Quota Management",
+          "path": "guides/quotas.md"
+        },
+        {
+          "title": "Troubleshooting",
+          "path": "guides/troubleshooting.md"
+        },
+        {
+          "title": "Integration Guide",
+          "path": "guides/integration.md"
+        }
+      ]
+    }
+  ]
+}

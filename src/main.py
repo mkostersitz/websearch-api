@@ -12,6 +12,7 @@ from src.core.database import Database
 from src.core.telemetry import configure_opentelemetry, instrument_app
 from src.middleware.logging import LoggingMiddleware
 from src.middleware.tracing import TracingMiddleware
+from src.middleware.metrics import MetricsMiddleware
 from src.api.routes import health
 
 
@@ -32,6 +33,13 @@ async def lifespan(app: FastAPI):
     # Initialize rate limiter
     from src.services.rate_limiter import rate_limiter
     await rate_limiter.connect()
+    
+    # Initialize default admin user
+    try:
+        from src.api.routes.auth import initialize_default_admin
+        await initialize_default_admin()
+    except Exception as e:
+        logger.warning(f"Could not initialize default admin: {e}")
     
     logger.info(f"Application started successfully on {settings.host}:{settings.port}")
     
@@ -66,6 +74,7 @@ def create_application() -> FastAPI:
     )
     
     # Custom middleware
+    app.add_middleware(MetricsMiddleware)  # Add first to capture all requests
     app.add_middleware(LoggingMiddleware)
     app.add_middleware(TracingMiddleware)
     
@@ -76,10 +85,14 @@ def create_application() -> FastAPI:
     app.include_router(health.router, prefix="/api/v1", tags=["health"])
     
     # Import clients router lazily to avoid circular imports
-    from src.api.routes import clients, search, admin
+    from src.api.routes import clients, search, admin, users_groups, policies, auth, metrics
     app.include_router(clients.router, prefix="/api/v1", tags=["clients"])
     app.include_router(search.router, prefix="/api/v1", tags=["search"])
     app.include_router(admin.router, prefix="/api/v1", tags=["admin"])
+    app.include_router(users_groups.router, prefix="/api/v1", tags=["users"])
+    app.include_router(policies.router, prefix="/api/v1", tags=["policies"])
+    app.include_router(auth.router, prefix="/api/v1", tags=["auth"])
+    app.include_router(metrics.router, tags=["metrics"])  # Root level for /metrics
     
     # Exception handlers
     @app.exception_handler(Exception)

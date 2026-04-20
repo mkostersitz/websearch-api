@@ -1,0 +1,68 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: websearch-ingress
+  namespace: websearch-api
+  labels:
+    app: websearch
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      # API routes - keep /api/v1 prefix
+      - path: /api/v1
+        pathType: Prefix
+        backend:
+          service:
+            name: websearch-api
+            port:
+              number: 8000
+      
+      # Metrics endpoint at root level (for Prometheus scraping)
+      - path: /metrics
+        pathType: Exact
+        backend:
+          service:
+            name: websearch-api
+            port:
+              number: 8000
+      
+      # Grafana monitoring - rewrite /grafana to /
+      - path: /grafana
+        pathType: Prefix
+        backend:
+          service:
+            name: grafana
+            port:
+              number: 3001
+      
+      # Prometheus metrics - keep /prometheus prefix
+      - path: /prometheus
+        pathType: Prefix
+        backend:
+          service:
+            name: prometheus
+            port:
+              number: 9090
+      
+      # Jaeger tracing UI - keep /jaeger prefix (it supports base path)
+      - path: /jaeger
+        pathType: Prefix
+        backend:
+          service:
+            name: jaeger
+            port:
+              number: 16686
+      
+      # Dashboard - catch all other routes (must be last)
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: dashboard
+            port:
+              number: 80

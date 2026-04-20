@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: websearch-api
+  labels:
+    name: websearch-api
+    environment: production

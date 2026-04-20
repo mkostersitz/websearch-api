@@ -1,0 +1,641 @@
+{
+  "title": "WebSearch API - System Overview",
+  "uid": "websearch-api-overview",
+  "tags": [
+    "websearch",
+    "api",
+    "overview"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "type": "timeseries",
+      "title": "HTTP Requests per Second",
+      "description": "Click to explore raw request metrics",
+      "targets": [
+        {
+          "expr": "rate(http_server_requests_total{job=\"websearch-api\"}[5m])",
+          "legendFormat": "{{method}} {{endpoint}}",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(http_server_active_requests{job=\"websearch-api\"}[5m])",
+          "legendFormat": "Active Requests",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never"
+          },
+          "unit": "reqps"
+        }
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
+      },
+      "links": [
+        {
+          "title": "View Raw Metrics",
+          "url": "http://localhost:9090/graph?g0.expr=rate(http_server_requests_total%7Bjob%3D%22websearch-api%22%7D%5B5m%5D)&g0.tab=0"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "type": "timeseries",
+      "title": "HTTP Response Times (p50, p95, p99)",
+      "description": "Request latency percentiles - Click to explore",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(http_server_duration_milliseconds_bucket{job=\"websearch-api\"}[5m]))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(http_server_duration_milliseconds_bucket{job=\"websearch-api\"}[5m]))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(http_server_duration_milliseconds_bucket{job=\"websearch-api\"}[5m]))",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "unit": "ms"
+        }
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "links": [
+        {
+          "title": "View Raw Metrics",
+          "url": "http://localhost:9090/graph?g0.expr=histogram_quantile(0.95%2C%20rate(http_server_duration_milliseconds_bucket%7Bjob%3D%22websearch-api%22%7D%5B5m%5D))&g0.tab=0"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 8
+      },
+      "type": "stat",
+      "title": "Total Requests",
+      "description": "Total HTTP requests in selected time range",
+      "targets": [
+        {
+          "expr": "sum(increase(http_server_requests_total{job=\"websearch-api\"}[$__range]))",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 1000,
+                "color": "yellow"
+              },
+              {
+                "value": 10000,
+                "color": "red"
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "text": {
+          "titleSize": 24,
+          "valueSize": 48
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      },
+      "links": [
+        {
+          "title": "View in Prometheus",
+          "url": "http://localhost:9090/graph?g0.expr=sum(increase(http_server_requests_total%7Bjob%3D%22websearch-api%22%7D%5B1h%5D))&g0.tab=0"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 8
+      },
+      "type": "stat",
+      "title": "Error Rate",
+      "description": "HTTP 4xx and 5xx error rate",
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_total{job=\"websearch-api\",status_code=~\"4..|5..\"}[5m])) / sum(rate(http_server_requests_total{job=\"websearch-api\"}[5m])) * 100",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 1,
+                "color": "yellow"
+              },
+              {
+                "value": 5,
+                "color": "red"
+              }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "text": {
+          "valueSize": 48
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "links": [
+        {
+          "title": "View Errors in Prometheus",
+          "url": "http://localhost:9090/graph?g0.expr=sum(rate(http_server_requests_total%7Bjob%3D%22websearch-api%22%2Cstatus_code%3D~%224..|5..%22%7D%5B5m%5D))&g0.tab=0"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 8
+      },
+      "type": "stat",
+      "title": "Active Requests",
+      "description": "Currently processing requests",
+      "targets": [
+        {
+          "expr": "http_server_active_requests{job=\"websearch-api\"}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 10,
+                "color": "yellow"
+              },
+              {
+                "value": 50,
+                "color": "red"
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "text": {
+          "valueSize": 48
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "links": [
+        {
+          "title": "View in Prometheus",
+          "url": "http://localhost:9090/graph?g0.expr=http_server_active_requests%7Bjob%3D%22websearch-api%22%7D&g0.tab=0"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "type": "timeseries",
+      "title": "HTTP Status Codes",
+      "description": "Distribution of HTTP response codes",
+      "targets": [
+        {
+          "expr": "sum by (status_code) (rate(http_server_requests_total{job=\"websearch-api\"}[5m]))",
+          "legendFormat": "{{status_code}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "normal"
+            }
+          },
+          "unit": "reqps"
+        }
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        }
+      },
+      "links": [
+        {
+          "title": "View in Prometheus",
+          "url": "http://localhost:9090/graph?g0.expr=sum%20by%20(status_code)%20(rate(http_server_requests_total%7Bjob%3D%22websearch-api%22%7D%5B5m%5D))&g0.tab=0"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "type": "timeseries",
+      "title": "Request Rate by Endpoint",
+      "description": "Requests per second grouped by API endpoint",
+      "targets": [
+        {
+          "expr": "sum by (endpoint) (rate(http_server_requests_total{job=\"websearch-api\"}[5m]))",
+          "legendFormat": "{{endpoint}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "unit": "reqps"
+        }
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
+      },
+      "links": [
+        {
+          "title": "View in Prometheus",
+          "url": "http://localhost:9090/graph?g0.expr=sum%20by%20(endpoint)%20(rate(http_server_requests_total%7Bjob%3D%22websearch-api%22%7D%5B5m%5D))&g0.tab=0"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "type": "timeseries",
+      "title": "OTEL Collector Metrics",
+      "description": "OpenTelemetry Collector throughput",
+      "targets": [
+        {
+          "expr": "rate(otelcol_receiver_accepted_spans{job=\"otel-collector\"}[5m])",
+          "legendFormat": "Spans Accepted",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(otelcol_receiver_accepted_metric_points{job=\"otel-collector\"}[5m])",
+          "legendFormat": "Metrics Accepted",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(otelcol_exporter_sent_spans{job=\"otel-collector\"}[5m])",
+          "legendFormat": "Spans Exported",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "unit": "ops"
+        }
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "links": [
+        {
+          "title": "View OTEL Metrics",
+          "url": "http://localhost:9090/graph?g0.expr=rate(otelcol_receiver_accepted_spans%7Bjob%3D%22otel-collector%22%7D%5B5m%5D)&g0.tab=0"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "type": "timeseries",
+      "title": "System Resource Usage",
+      "description": "CPU and Memory usage metrics",
+      "targets": [
+        {
+          "expr": "process_cpu_seconds_total{job=\"websearch-api\"}",
+          "legendFormat": "CPU Seconds",
+          "refId": "A"
+        },
+        {
+          "expr": "process_resident_memory_bytes{job=\"websearch-api\"} / 1024 / 1024",
+          "legendFormat": "Memory MB",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "axisPlacement": "auto"
+          }
+        }
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "links": [
+        {
+          "title": "View System Metrics",
+          "url": "http://localhost:9090/graph?g0.expr=process_resident_memory_bytes%7Bjob%3D%22websearch-api%22%7D&g0.tab=0"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "type": "table",
+      "title": "Top Endpoints by Request Count",
+      "description": "Most frequently accessed API endpoints",
+      "targets": [
+        {
+          "expr": "topk(10, sum by (endpoint, method) (increase(http_server_requests_total{job=\"websearch-api\"}[$__range])))",
+          "refId": "A",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Request Count"
+              },
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Request Count"
+          }
+        ]
+      },
+      "links": [
+        {
+          "title": "View in Prometheus",
+          "url": "http://localhost:9090/graph?g0.expr=topk(10%2C%20sum%20by%20(endpoint%2C%20method)%20(increase(http_server_requests_total%7Bjob%3D%22websearch-api%22%7D%5B1h%5D)))&g0.tab=0"
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "5m",
+          "value": "5m"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Rate Interval",
+        "name": "rate_interval",
+        "options": [
+          {
+            "text": "1m",
+            "value": "1m"
+          },
+          {
+            "text": "5m",
+            "value": "5m",
+            "selected": true
+          },
+          {
+            "text": "10m",
+            "value": "10m"
+          },
+          {
+            "text": "30m",
+            "value": "30m"
+          }
+        ],
+        "query": "1m,5m,10m,30m",
+        "type": "custom"
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  }
+}

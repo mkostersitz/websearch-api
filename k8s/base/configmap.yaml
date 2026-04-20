@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: websearch-api-config
+  namespace: websearch-api
+data:
+  # Application settings
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  
+  # Database
+  MONGODB_URL: "mongodb://admin:admin123@mongodb:27017/websearch_api?authSource=admin"
+  
+  # Redis
+  REDIS_URL: "redis://redis:6379"
+  
+  # OTEL
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+  OTEL_SERVICE_NAME: "websearch-api"
+  
+  # Rate limiting
+  RATE_LIMIT_PER_MINUTE: "60"
+  RATE_LIMIT_BURST: "100"
+  
+  # Prometheus
+  PROMETHEUS_URL: "http://prometheus:9090"
+  
+  # Jaeger
+  JAEGER_AGENT_HOST: "jaeger"
+  JAEGER_AGENT_PORT: "6831"

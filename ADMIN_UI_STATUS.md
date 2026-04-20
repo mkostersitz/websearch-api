@@ -1,102 +1,111 @@
-# Admin UI Status
+# Admin Dashboard Status
 
-## Current Status: Not Yet Implemented
+**Last Updated:** 2026-04-16  
+**Status:** 🚧 IN PROGRESS - React dashboard being built
 
-The Admin UI (React frontend) is part of the original plan but has not been implemented yet.
+## Quick Start
 
-## What Exists Now
-
-✅ **Admin Backend API** - Fully implemented and working
-- `/api/v1/admin/stats/overview` - System statistics
-- `/api/v1/admin/stats/search` - Search analytics
-- `/api/v1/admin/stats/providers` - Provider statistics
-- `/api/v1/admin/stats/queries/top` - Top queries
-- `/api/v1/admin/audit-logs` - Audit log querying
-- `/api/v1/admin/system/health` - System health
-
-All admin endpoints are documented in the API docs: http://localhost:8000/docs
-
-## What's Missing
-
-❌ **React Frontend** - Not started (Phase 9 in plan.md)
-- Dashboard UI
-- Charts and visualizations
-- User management interface
-- Policy management interface
-- Client management interface
-- Real-time monitoring
-
-## Workarounds
-
-You can use the admin API directly via:
-
-### 1. Swagger UI (Recommended)
-http://localhost:8000/docs
-- Interactive API documentation
-- Try out all endpoints
-- See request/response schemas
-
-### 2. cURL Commands
-
+### 1. Start the Backend API
 ```bash
-# Admin API Key
-API_KEY="GA_Incg4zEhpK-65G6PwL499t2kXvH2Cs-hWf6udtZU"
-
-# Get overview stats
-curl http://localhost:8000/api/v1/admin/stats/overview \
-  -H "X-API-Key: $API_KEY"
-
-# Get search stats
-curl http://localhost:8000/api/v1/admin/stats/search?days=7 \
-  -H "X-API-Key: $API_KEY"
-
-# Get provider stats
-curl http://localhost:8000/api/v1/admin/stats/providers \
-  -H "X-API-Key: $API_KEY"
-
-# Get top queries
-curl http://localhost:8000/api/v1/admin/stats/queries/top?limit=10 \
-  -H "X-API-Key: $API_KEY"
+cd /Users/mikek/repos/websearch-api
+./run.sh api
 ```
+Backend: http://localhost:8000  
+API Docs: http://localhost:8000/docs
 
-### 3. Custom Python Script
-
-```python
-import requests
-
-API_KEY = "GA_Incg4zEhpK-65G6PwL499t2kXvH2Cs-hWf6udtZU"
-BASE_URL = "http://localhost:8000/api/v1/admin"
-headers = {"X-API-Key": API_KEY}
-
-# Get stats
-overview = requests.get(f"{BASE_URL}/stats/overview", headers=headers).json()
-print(f"Total Searches: {overview['searches']['total']}")
-print(f"Active Clients: {overview['clients']['total']}")
+### 2. Start the Frontend Dashboard  
+```bash
+cd /Users/mikek/repos/websearch-api/admin-dashboard
+npm install  # First time only
+npm run dev
 ```
+Dashboard: http://localhost:3000
 
-## Implementation Plan (Phase 9 - Pending)
+### 3. Login
+Admin API Key: `GA_Incg4zEhpK-65G6PwL499t2kXvH2Cs-hWf6udtZU`
 
-When building the Admin UI, it would include:
+## Architecture
 
-1. **Dashboard Page** - Overview statistics, recent activity
-2. **Analytics Page** - Search trends, provider performance charts
-3. **Client Management** - List/create/edit/delete clients
-4. **User Management** - Roles, permissions, API keys
-5. **Policy Management** - Content filtering rules
-6. **Audit Logs** - Searchable log viewer with filters
-7. **System Settings** - Rate limits, provider config
+**Backend:** FastAPI (Python) on port 8000  
+**Frontend:** React + TypeScript + Material-UI on port 3000  
+**Database:** MongoDB  
+**Cache:** Redis  
+**Observability:** OpenTelemetry + Jaeger
 
-## Tech Stack (Planned)
+## Features
 
-- React 18 + TypeScript
-- Material-UI or Ant Design
-- Recharts for visualizations
-- React Query for API state
-- React Router for navigation
+### ✅ Backend API (Complete)
+- Overview statistics
+- Search analytics with charts
+- Client management (CRUD)
+- System health monitoring
+- Audit log querying
+- Provider status checks
 
-## To Build It
+### 🚧 Frontend Dashboard (In Progress)
+- Dashboard overview page
+- Client management interface
+- Analytics with charts
+- Audit log viewer
+- System health monitoring
+- Real-time updates
 
-See Phase 9 in `/Users/mikek/repos/websearch-api/plan.md`
+## API Endpoints
 
-Current priority: Admin backend API works perfectly via Swagger UI.
-Frontend can be built when needed.
+All require `X-API-Key` header with admin key.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/admin/stats/overview` | GET | Total clients, searches, users |
+| `/api/v1/admin/stats/searches?days=30` | GET | Search trends and analytics |
+| `/api/v1/admin/health` | GET | System health (DB, Redis, providers) |
+| `/api/v1/admin/clients` | GET | List all clients |
+| `/api/v1/admin/clients` | POST | Create new client |
+| `/api/v1/admin/clients/{id}` | PUT | Update client |
+| `/api/v1/admin/clients/{id}` | DELETE | Delete client |
+| `/api/v1/admin/audit-logs` | GET | Query audit logs with filters |
+| `/api/v1/search/providers/health-check` | GET | Search provider status |
+
+## Tech Stack
+
+### Backend
+- Python 3.12
+- FastAPI
+- MongoDB
+- Redis
+- OpenTelemetry
+
+### Frontend
+- React 18.2
+- TypeScript 5.3
+- Material-UI 5.14
+- Recharts 2.10
+- Axios
+- React Router 6.20
+- Vite 5.0
+
+## Development Status
+
+✅ Backend API fully functional  
+✅ Project structure created  
+✅ TypeScript types defined  
+✅ API service layer ready  
+🚧 React components being built by agent  
+⏳ Pages in development  
+⏳ Testing pending  
+
+## Next Steps
+
+1. ✅ Complete React component development (in progress)
+2. Test all CRUD operations
+3. Add real-time updates
+4. Export functionality for reports
+5. Performance optimization
+6. Production build
+
+## Notes
+
+- CORS configured for localhost:3000
+- API key stored in localStorage
+- Charts show last 30 days by default
+- All timestamps in ISO 8601 format

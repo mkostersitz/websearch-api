@@ -4,6 +4,7 @@ from typing import List, Optional
 from loguru import logger
 
 from src.models.database import Policy, PolicyScope
+from src.models.policy import EnhancedPolicy
 from src.models.search import SearchResult
 from src.core.database import Database
 from src.middleware.tracing import trace_function
@@ -20,7 +21,7 @@ class PolicyEngine:
     ) -> List[Policy]:
         """
         Get all applicable policies for a user/client.
-        Applies policy inheritance: global → organization → user
+        Applies policy inheritance: global → group → user
         
         Args:
             user_id: User ID
@@ -32,26 +33,69 @@ class PolicyEngine:
         db = Database.get_db()
         policies = []
         
-        # Get global policies
-        global_policies = db.policies.find({
-            "scope": PolicyScope.GLOBAL.value,
-            "is_active": True
-        })
-        async for policy_doc in global_policies:
-            policies.append(Policy(**policy_doc))
-        
-        # Get user-specific policies
+        # Get user's groups if user_id provided
+        user_groups = []
         if user_id:
-            user_policies = db.policies.find({
-                "scope": PolicyScope.USER.value,
-                "target_id": user_id,
-                "is_active": True
-            })
-            async for policy_doc in user_policies:
-                policies.append(Policy(**policy_doc))
+            user = await db.users.find_one({"user_id": user_id})
+            if user:
+                user_groups = user.get("groups", [])
+        
+        # Build query to find applicable policies
+        # Policies can be:
+        # 1. Global (scope = "global")
+        # 2. Group-targeted (target_group_ids contains one of user's groups)
+        # 3. User-targeted (target_user_ids contains user_id)
+        query = {
+            "is_active": True,
+            "$or": [
+                {"scope": "global"},
+            ]
+        }
+        
+        if user_groups:
+            query["$or"].append({"target_group_ids": {"$in": user_groups}})
+        
+        if user_id:
+            query["$or"].append({"target_user_ids": user_id})
+        
+        # Fetch policies
+        policy_cursor = db.policies.find(query)
+        async for policy_doc in policy_cursor:
+            try:
+                # Try to parse as EnhancedPolicy first, then convert to simple Policy
+                try:
+                    enhanced = EnhancedPolicy(**policy_doc)
+                    # Convert EnhancedPolicy to simple Policy format
+                    simple_policy = Policy(
+                        policy_id=enhanced.policy_id,
+                        policy_name=enhanced.policy_name,
+                        scope=enhanced.scope,
+                        target_id=None,
+                        safe_search=enhanced.search_permissions.require_safe_search if enhanced.search_permissions else True,
+                        blocked_keywords=enhanced.search_permissions.blocked_keywords if enhanced.search_permissions else [],
+                        allowed_domains=enhanced.search_permissions.allowed_domains if enhanced.search_permissions else None,
+                        blocked_domains=enhanced.search_permissions.blocked_domains if enhanced.search_permissions else [],
+                        parental_control_enabled=enhanced.parental_controls.enabled if enhanced.parental_controls else False,
+                        min_age_rating=enhanced.parental_controls.age_restriction if enhanced.parental_controls else 0,
+                        max_results_per_query=100,  # Default
+                        enable_caching=enhanced.search_permissions.enable_caching if enhanced.search_permissions else True,
+                        preferred_providers=enhanced.search_permissions.allowed_providers if enhanced.search_permissions else ["google", "bing"],
+                        is_active=enhanced.is_active,
+                        priority=enhanced.priority,
+                        created_at=enhanced.created_at,
+                        updated_at=enhanced.updated_at
+                    )
+                    policies.append(simple_policy)
+                except Exception:
+                    # Fall back to simple Policy parsing
+                    policies.append(Policy(**policy_doc))
+            except Exception as e:
+                logger.warning(f"Failed to parse policy {policy_doc.get('policy_id')}: {e}")
         
         # Sort by priority (higher priority overrides lower)
         policies.sort(key=lambda p: (p.priority, p.created_at), reverse=True)
+        
+        logger.info(f"Found {len(policies)} applicable policies for user {user_id} (groups: {user_groups})")
         
         return policies
     
@@ -111,6 +155,30 @@ class PolicyEngine:
                     merged.preferred_providers = policy.preferred_providers
         
         return merged
+    
+    @trace_function("validate_query")
+    def validate_query(self, query: str, policy: Policy) -> tuple[bool, Optional[str]]:
+        """
+        Validate a query against policy rules before executing the search.
+        
+        Args:
+            query: Search query string
+            policy: Policy to validate against
+            
+        Returns:
+            Tuple of (is_blocked, reason)
+            - (True, reason) if query should be blocked
+            - (False, None) if query is allowed
+        """
+        query_lower = query.lower()
+        
+        # Check for blocked keywords in query
+        if policy.blocked_keywords:
+            for keyword in policy.blocked_keywords:
+                if keyword.lower() in query_lower:
+                    return True, f"Query contains blocked keyword: '{keyword}'"
+        
+        return False, None
     
     @trace_function("apply_policy")
     async def apply_policy(

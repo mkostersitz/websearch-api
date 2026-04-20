@@ -3,7 +3,7 @@
 import time
 import uuid
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from loguru import logger
 
@@ -15,6 +15,7 @@ from src.services.search_manager import search_manager
 from src.services.policy_engine import policy_engine
 from src.services.rate_limiter import rate_limiter
 from src.core.database import Database
+from src.utils.audit_log import log_audit_event, get_user_context_from_client
 
 
 router = APIRouter()
@@ -91,11 +92,62 @@ async def search(
         effective_policy = policy_engine.merge_policies(policies)
         logger.info(f"Applied {len(policies)} policies for client {client_id}")
         
-        # 4. Apply policy limits to request
+        # 4. Validate query against policy (BLOCK if query contains blocked keywords)
+        query_blocked, blocked_reason = policy_engine.validate_query(
+            query=request.query,
+            policy=effective_policy
+        )
+        
+        if query_blocked:
+            logger.warning(f"Query blocked for client {client_id}: {blocked_reason}")
+            
+            # Log blocked query to audit
+            db = Database.get_db()
+            user_context = await get_user_context_from_client(db, current_client)
+            
+            await log_audit_event(
+                db=db,
+                client_id=client_id,
+                action="search_blocked",
+                resource_type="search",
+                resource_id=f"query-{uuid.uuid4()}",
+                user_id=user_context["user_id"],
+                user_email=user_context["user_email"],
+                user_name=user_context["user_name"],
+                request_info={
+                    "method": "POST",
+                    "path": "/api/v1/search",
+                    "query": request.query,
+                    "max_results": request.max_results,
+                    "ip_address": http_request.client.host if http_request.client else "unknown",
+                    "user_agent": http_request.headers.get("user-agent")
+                },
+                response_info={
+                    "status_code": 403,
+                    "blocked_reason": blocked_reason
+                },
+                policies_applied=[{
+                    "policy_id": p.policy_id,
+                    "policy_name": p.policy_name,
+                    "priority": p.priority,
+                    "blocked_keywords": p.blocked_keywords
+                } for p in policies],
+                details={
+                    "blocked_reason": blocked_reason,
+                    "query": request.query
+                }
+            )
+            
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Query blocked by policy: {blocked_reason}"
+            )
+        
+        # 5. Apply policy limits to request
         max_results = min(request.max_results, effective_policy.max_results_per_query)
         safe_search = request.safe_search or effective_policy.safe_search
         
-        # 5. Perform search
+        # 6. Perform search
         search_response = await search_manager.search(
             query=request.query,
             max_results=max_results,
@@ -103,43 +155,63 @@ async def search(
             preferred_provider=request.preferred_provider
         )
         
-        # 6. Apply policy filters to results
+        # 7. Apply policy filters to results
         filtered_results, filtered_count = await policy_engine.apply_policy(
             results=search_response.results,
             policy=effective_policy
         )
         
-        # 7. Increment quota usage
+        # 8. Increment quota usage
         await rate_limiter.increment_quota(client_id, "day", 1)
         await rate_limiter.increment_quota(client_id, "month", 1)
         
-        # 8. Log search for audit
-        log_id = str(uuid.uuid4())
-        search_log = SearchLog(
-            log_id=log_id,
-            user_id=owner_id,
+        # 9. Log successful search to audit
+        db = Database.get_db()
+        user_context = await get_user_context_from_client(db, current_client)
+        
+        await log_audit_event(
+            db=db,
             client_id=client_id,
-            query=request.query,
-            query_hash=search_response.query_hash,
-            provider_used=search_response.provider,
-            results_count=len(filtered_results),
-            policies_applied=[p.policy_id for p in policies],
-            filtered_results_count=filtered_count,
-            response_time_ms=search_response.response_time_ms,
-            ip_address=http_request.client.host if http_request.client else None,
-            user_agent=http_request.headers.get("user-agent"),
-            metadata={
-                "safe_search": safe_search,
+            action="search",
+            resource_type="search",
+            resource_id=f"query-{uuid.uuid4()}",
+            user_id=user_context["user_id"],
+            user_email=user_context["user_email"],
+            user_name=user_context["user_name"],
+            request_info={
+                "method": "POST",
+                "path": "/api/v1/search",
+                "query": request.query,
                 "max_results": max_results,
-                "preferred_provider": request.preferred_provider
+                "safe_search": safe_search,
+                "ip_address": http_request.client.host if http_request.client else "unknown",
+                "user_agent": http_request.headers.get("user-agent")
+            },
+            response_info={
+                "status_code": 200,
+                "provider": search_response.provider,
+                "results_count": len(filtered_results),
+                "response_time_ms": search_response.response_time_ms
+            },
+            policies_applied=[{
+                "policy_id": p.policy_id,
+                "policy_name": p.policy_name,
+                "priority": p.priority
+            } for p in policies],
+            quotas={
+                "used_today": quota_info.get("daily", {}).get("used", 0),
+                "limit_today": quota_info.get("daily", {}).get("limit", 0),
+                "used_month": quota_info.get("monthly", {}).get("used", 0),
+                "limit_month": quota_info.get("monthly", {}).get("limit", 0)
+            },
+            filtering_info={
+                "total_results": len(search_response.results),
+                "blocked_results": filtered_count,
+                "returned_results": len(filtered_results)
             }
         )
         
-        # Store in database (non-blocking)
-        db = Database.get_db()
-        await db.search_logs.insert_one(search_log.model_dump())
-        
-        # 9. Build response
+        # 10. Build response
         response = SearchResponse(
             query=search_response.query,
             results=[

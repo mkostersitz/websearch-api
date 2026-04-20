@@ -98,33 +98,34 @@ def trace_function(name: str = None):
         
         span_name = name or func.__name__
         
-        async def async_wrapper(*args, **kwargs):
-            with tracer.start_as_current_span(span_name) as span:
-                try:
-                    result = await func(*args, **kwargs)
-                    span.set_status(Status(StatusCode.OK))
-                    return result
-                except Exception as e:
-                    span.record_exception(e)
-                    span.set_status(Status(StatusCode.ERROR, str(e)))
-                    raise
-        
-        def sync_wrapper(*args, **kwargs):
-            with tracer.start_as_current_span(span_name) as span:
-                try:
-                    result = func(*args, **kwargs)
-                    span.set_status(Status(StatusCode.OK))
-                    return result
-                except Exception as e:
-                    span.record_exception(e)
-                    span.set_status(Status(StatusCode.ERROR, str(e)))
-                    raise
-        
-        # Return appropriate wrapper based on function type
+        from functools import wraps
         import asyncio
+        
         if asyncio.iscoroutinefunction(func):
+            @wraps(func)
+            async def async_wrapper(*args, **kwargs):
+                with tracer.start_as_current_span(span_name) as span:
+                    try:
+                        result = await func(*args, **kwargs)
+                        span.set_status(Status(StatusCode.OK))
+                        return result
+                    except Exception as e:
+                        span.record_exception(e)
+                        span.set_status(Status(StatusCode.ERROR, str(e)))
+                        raise
             return async_wrapper
         else:
+            @wraps(func)
+            def sync_wrapper(*args, **kwargs):
+                with tracer.start_as_current_span(span_name) as span:
+                    try:
+                        result = func(*args, **kwargs)
+                        span.set_status(Status(StatusCode.OK))
+                        return result
+                    except Exception as e:
+                        span.record_exception(e)
+                        span.set_status(Status(StatusCode.ERROR, str(e)))
+                        raise
             return sync_wrapper
     
     return decorator

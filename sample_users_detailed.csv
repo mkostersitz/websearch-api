@@ -1,0 +1,31 @@
+email,name,department,title,groups,manager_email,location,quota_per_day,quota_per_month
+john.doe@example.com,John Doe,Engineering,Software Engineer,"developers,engineers,team-alpha",tony.stark@example.com,San Francisco,500,15000
+jane.smith@example.com,Jane Smith,Engineering,Senior Software Engineer,"developers,senior-engineers,team-alpha",tony.stark@example.com,San Francisco,1000,30000
+bob.johnson@example.com,Bob Johnson,Marketing,Marketing Specialist,"marketing,content-creators",wendy.williams@example.com,New York,300,9000
+alice.williams@example.com,Alice Williams,Sales,Account Manager,"sales,account-managers",steve.rogers@example.com,Chicago,400,12000
+charlie.brown@example.com,Charlie Brown,Engineering,Software Engineer,"developers,team-beta",tony.stark@example.com,Austin,500,15000
+diana.prince@example.com,Diana Prince,HR,HR Manager,"hr,admins,managers",steve.rogers@example.com,Seattle,200,6000
+eve.anderson@example.com,Eve Anderson,Finance,Financial Analyst,"finance,accountants",steve.rogers@example.com,Boston,200,6000
+frank.miller@example.com,Frank Miller,Engineering,DevOps Engineer,"developers,devops,team-alpha",tony.stark@example.com,San Francisco,800,24000
+grace.hopper@example.com,Grace Hopper,Engineering,Principal Engineer,"developers,architects,senior-engineers",steve.rogers@example.com,San Francisco,2000,60000
+henry.ford@example.com,Henry Ford,Operations,Operations Manager,"operations,managers",steve.rogers@example.com,Detroit,300,9000
+irene.adler@example.com,Irene Adler,Security,Security Engineer,"security,infosec,admins",steve.rogers@example.com,Remote,1000,30000
+jack.sparrow@example.com,Jack Sparrow,Sales,Account Executive,"sales,account-executives",steve.rogers@example.com,Miami,500,15000
+karen.page@example.com,Karen Page,Marketing,Social Media Manager,"marketing,social-media",wendy.williams@example.com,Los Angeles,400,12000
+luke.cage@example.com,Luke Cage,Engineering,QA Engineer,"developers,qa,team-beta",tony.stark@example.com,Portland,600,18000
+mary.watson@example.com,Mary Watson,HR,Recruiter,"hr,recruiters",diana.prince@example.com,Seattle,250,7500
+nathan.drake@example.com,Nathan Drake,Engineering,Frontend Developer,"developers,frontend,team-alpha",tony.stark@example.com,San Francisco,600,18000
+olivia.pope@example.com,Olivia Pope,Legal,Legal Counsel,"legal,compliance,admins",steve.rogers@example.com,Washington DC,300,9000
+peter.parker@example.com,Peter Parker,Engineering,Backend Developer,"developers,backend,team-beta",tony.stark@example.com,New York,700,21000
+quinn.mallory@example.com,Quinn Mallory,Research,Data Scientist,"research,data-scientists",grace.hopper@example.com,San Francisco,800,24000
+rachel.green@example.com,Rachel Green,Customer Success,Customer Success Manager,"support,customer-success",steve.rogers@example.com,New York,400,12000
+steve.rogers@example.com,Steve Rogers,Leadership,Chief Operating Officer,"executives,managers,admins",,San Francisco,5000,150000
+tony.stark@example.com,Tony Stark,Engineering,Chief Technology Officer,"developers,architects,team-alpha,admins,executives",steve.rogers@example.com,San Francisco,5000,150000
+ursula.burns@example.com,Ursula Burns,Operations,Project Manager,"operations,project-managers",henry.ford@example.com,Chicago,350,10500
+victor.stone@example.com,Victor Stone,IT,System Administrator,"it,sysadmins,admins",steve.rogers@example.com,Remote,600,18000
+wendy.williams@example.com,Wendy Williams,Marketing,Marketing Director,"marketing,content-creators,managers",steve.rogers@example.com,New York,1500,45000
+xavier.charles@example.com,Xavier Charles,Training,Training Manager,"training,learning-development",diana.prince@example.com,Boston,300,9000
+yara.shahidi@example.com,Yara Shahidi,Design,UX Designer,"design,ux-designers",tony.stark@example.com,Los Angeles,500,15000
+zoe.saldana@example.com,Zoe Saldana,Engineering,Mobile Developer,"developers,mobile,team-beta",tony.stark@example.com,Miami,600,18000
+adam.west@example.com,Adam West,Security,Penetration Tester,"security,pentesting",irene.adler@example.com,Remote,700,21000
+barbara.gordon@example.com,Barbara Gordon,Engineering,Data Engineer,"developers,data-engineers,senior-engineers",grace.hopper@example.com,San Francisco,900,27000
