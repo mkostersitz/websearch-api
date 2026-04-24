@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import KeycloakLoginButton from '../components/MicrosoftLoginButton';
 import {
   Box,
   Container,
@@ -236,6 +237,10 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </Button>
+
+          <Divider sx={{ my: 3 }}>or</Divider>
+
+          <KeycloakLoginButton />
 
           <Box sx={{ mt: 3, p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
             <Typography variant="caption" display="block" gutterBottom>
