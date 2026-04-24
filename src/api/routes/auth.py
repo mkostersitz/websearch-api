@@ -714,10 +714,10 @@ async def initialize_default_admin():
             "password_hash": default_password_hash,
             "first_login": True,
             "is_active": True,
+            "role": "admin",
             "groups": ["admins"],
             "created_at": datetime.now(timezone.utc),
             "metadata": {
-                "role": "admin",
                 "created_by": "system"
             }
         }

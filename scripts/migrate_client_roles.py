@@ -45,7 +45,28 @@ async def migrate():
         else:
             defaulted += 1
 
-    print(f"\nDone: {promoted} promoted from metadata.role, {defaulted} defaulted to 'agent'")
+    print(f"\nClients: {promoted} promoted from metadata.role, {defaulted} defaulted to 'agent'")
+
+    # Also migrate users collection (admin user created before this fix stored role in metadata)
+    users = db.users
+    user_total = await users.count_documents({})
+    print(f"\nFound {user_total} user documents")
+
+    user_promoted = 0
+    async for doc in users.find({}):
+        if doc.get("role"):
+            continue
+        metadata_role = doc.get("metadata", {}).get("role")
+        new_role = metadata_role if metadata_role in ("admin", "user", "agent") else "user"
+        update = {"$set": {"role": new_role}}
+        if metadata_role:
+            update["$unset"] = {"metadata.role": ""}
+        await users.update_one({"user_id": doc["user_id"]}, update)
+        if metadata_role:
+            user_promoted += 1
+            print(f"  Promoted user {doc['user_id']}: metadata.role={metadata_role!r} -> role={new_role!r}")
+
+    print(f"Users: {user_promoted} promoted from metadata.role")
     client.close()
 
 
