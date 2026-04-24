@@ -41,6 +41,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   // API Key display
   const [showApiKey, setShowApiKey] = useState(false);
   const [generatedApiKey, setGeneratedApiKey] = useState('');
+  const [existingKeyConflict, setExistingKeyConflict] = useState(false);
 
   const handleLogin = async () => {
     setError(null);
@@ -115,15 +116,12 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     }
   };
 
-  const createAdminKey = async (user: string, pass: string) => {
+  const createAdminKey = async (user: string, pass: string, force = false) => {
     try {
       const response = await fetch('/api/v1/auth/create-admin-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: user,
-          password: pass,
-        }),
+        body: JSON.stringify({ username: user, password: pass, force }),
       });
 
       if (!response.ok) {
@@ -132,22 +130,27 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       }
 
       const data = await response.json();
-      
-      // Check if this is an existing API key
+
       if (data.existing) {
-        // User already has an API key - just continue to dashboard with masked key
-        // We'll need to fetch the actual key from storage or let them use the existing one
-        setError("You already have an active API key. If you lost it, please revoke it and create a new one.");
-        setLoading(false);
-        // For now, we'll allow them to continue but they need to use their stored key
-        // TODO: Add a "revoke and regenerate" flow
+        setExistingKeyConflict(true);
         return;
       }
-      
+
       setGeneratedApiKey(data.api_key);
       setShowApiKey(true);
     } catch (err: any) {
       setError(err.message || 'Failed to create admin API key');
+    }
+  };
+
+  const handleRevokeAndRegenerate = async () => {
+    setError(null);
+    setLoading(true);
+    setExistingKeyConflict(false);
+    try {
+      await createAdminKey(username, password, true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -294,6 +297,28 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         </Dialog>
 
         {/* API Key Display Dialog */}
+        {/* Existing key conflict dialog */}
+        <Dialog open={existingKeyConflict} maxWidth="sm" fullWidth disableEscapeKeyDown>
+          <DialogTitle>
+            <KeyIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+            Active API Key Exists
+          </DialogTitle>
+          <DialogContent>
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              Your account already has an active API key. If you still have it stored somewhere, use it to log in directly by pasting it in the API key field. Otherwise, revoke it and generate a new one.
+            </Alert>
+            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setExistingKeyConflict(false)} disabled={loading}>
+              Cancel
+            </Button>
+            <Button onClick={handleRevokeAndRegenerate} variant="contained" color="warning" disabled={loading}>
+              {loading ? 'Revoking...' : 'Revoke & Generate New Key'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
         <Dialog open={showApiKey} maxWidth="sm" fullWidth disableEscapeKeyDown>
           <DialogTitle>
             <KeyIcon sx={{ mr: 1, verticalAlign: 'middle' }} />

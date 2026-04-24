@@ -82,6 +82,7 @@ class CreateAdminKeyRequest(BaseModel):
     """Request model for creating admin API key"""
     username: str
     password: str
+    force: bool = Field(default=False, description="Revoke existing key and generate a new one")
 
 
 # Helper Functions
@@ -598,33 +599,27 @@ async def create_admin_key(request: Request, key_request: CreateAdminKeyRequest)
     client_id = f"admin-{user['user_id']}"
     existing_client = await clients.find_one({"client_id": client_id})
     
-    # If API key exists and is active, return existing key info (but not the actual key)
+    # If API key exists and is active, either block or revoke depending on force flag
     if existing_client and existing_client.get("is_active"):
-        # Log that we're using existing key
+        if not key_request.force:
+            return {
+                "existing": True,
+                "message": "You already have an active API key.",
+            }
+        # force=True: revoke existing key so a fresh one is generated below
+        await clients.update_one(
+            {"client_id": client_id},
+            {"$set": {"is_active": False, "revoked_at": datetime.now(timezone.utc), "revocation_reason": "Admin requested regeneration"}}
+        )
         await log_audit_event(
             db=db,
             client_id=client_id,
-            action="admin_key_retrieved",
+            action="admin_key_revoked",
             resource_type="api_key",
             resource_id=client_id,
             user_id=user["user_id"],
-            details={"message": "Existing API key retrieved"}
+            details={"reason": "force regeneration"}
         )
-        
-        return {
-            "api_key": "********-****-****-****-************",  # Masked - don't show existing keys
-            "existing": True,
-            "message": "You already have an active API key. It was shown once during creation.",
-            "user_id": user["user_id"],
-            "username": user["username"],
-            "email": user.get("email", ""),
-            "name": user.get("name", user["username"]),
-            "groups": user.get("groups", []),
-            "quotas": {
-                "per_day": existing_client.get("quota_per_day", -1),
-                "per_month": existing_client.get("quota_per_month", -1)
-            }
-        }
     
     # Generate new admin API key
     api_key = generate_admin_api_key()
