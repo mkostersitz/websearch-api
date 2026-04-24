@@ -18,7 +18,9 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^6.20.0",
     "react-syntax-highlighter": "^16.1.1",
-    "recharts": "^2.10.3"
+    "recharts": "^2.10.3",
+    "oidc-client-ts": "^3.1.0",
+    "react-oidc-context": "^3.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
