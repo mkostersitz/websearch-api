@@ -36,6 +36,13 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 80
+          env:
+            - name: VITE_KEYCLOAK_URL
+              value: ""
+            - name: VITE_KEYCLOAK_REALM
+              value: "websearch"
+            - name: VITE_KEYCLOAK_CLIENT_ID
+              value: ""
           resources:
             requests:
               memory: "64Mi"

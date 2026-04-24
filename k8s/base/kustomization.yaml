@@ -6,6 +6,7 @@ namespace: websearch-api
 resources:
   - namespace.yaml
   - configmap.yaml
+  - keycloak-secret.yaml
   - mongodb.yaml
   - redis.yaml
   - api-deployment.yaml
