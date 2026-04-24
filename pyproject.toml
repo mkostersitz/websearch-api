@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "websearch-api"
-version = "0.1.2"
+version = "0.1.3"
 description = "Enterprise-grade Web Search API for AI Agents with OTEL, OAuth, and advanced guardrails"
 authors = ["Your Team <team@example.com>"]
 readme = "README.md"
