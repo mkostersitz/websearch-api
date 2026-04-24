@@ -1,10 +1,14 @@
 """Search provider manager with fallback support."""
 
+import hashlib
+import json
 import time
 from typing import List, Optional
 from datetime import datetime
 from loguru import logger
+import redis.asyncio as redis
 
+from src.core.config import settings
 from src.models.search import SearchProvider, SearchResult, SearchResponse, ProviderStatus
 from src.services.google_search import GoogleSearchProvider
 from src.services.bing_search import BingSearchProvider
@@ -13,10 +17,60 @@ from src.middleware.tracing import trace_function
 
 class SearchProviderManager:
     """Manages multiple search providers with fallback logic."""
-    
+
     def __init__(self):
         self.providers: List[SearchProvider] = []
+        self._redis: Optional[redis.Redis] = None
         self._initialize_providers()
+
+    async def _get_redis(self) -> redis.Redis:
+        if not self._redis:
+            self._redis = redis.from_url(
+                settings.redis_url,
+                encoding="utf-8",
+                decode_responses=True
+            )
+        return self._redis
+
+    def _cache_key(self, query: str, max_results: int, safe_search: bool) -> str:
+        raw = f"{query}|{max_results}|{safe_search}"
+        digest = hashlib.sha256(raw.encode()).hexdigest()[:24]
+        return f"search_cache:{digest}"
+
+    async def _get_cached(self, key: str) -> Optional[SearchResponse]:
+        try:
+            r = await self._get_redis()
+            data = await r.get(key)
+            if data:
+                payload = json.loads(data)
+                results = [SearchResult(**res) for res in payload["results"]]
+                return SearchResponse(
+                    query=payload["query"],
+                    query_hash=payload["query_hash"],
+                    results=results,
+                    total_results=payload["total_results"],
+                    provider=payload["provider"],
+                    response_time_ms=payload["response_time_ms"],
+                    cached=True
+                )
+        except Exception as e:
+            logger.warning(f"Cache read failed: {e}")
+        return None
+
+    async def _set_cached(self, key: str, response: SearchResponse) -> None:
+        try:
+            r = await self._get_redis()
+            payload = {
+                "query": response.query,
+                "query_hash": response.query_hash,
+                "results": [res.model_dump() for res in response.results],
+                "total_results": response.total_results,
+                "provider": response.provider,
+                "response_time_ms": response.response_time_ms,
+            }
+            await r.set(key, json.dumps(payload), ex=settings.search_cache_ttl_seconds)
+        except Exception as e:
+            logger.warning(f"Cache write failed: {e}")
     
     def _initialize_providers(self):
         """Initialize available search providers."""
@@ -58,10 +112,18 @@ class SearchProviderManager:
             SearchResponse with results
         """
         start_time = time.time()
-        
+
+        # Check cache first
+        cache_key = self._cache_key(query, max_results, safe_search)
+        cached = await self._get_cached(cache_key)
+        if cached:
+            logger.info(f"Cache hit for query: {query!r}")
+            cached.response_time_ms = (time.time() - start_time) * 1000
+            return cached
+
         # Determine provider order
         providers = self._get_provider_order(preferred_provider)
-        
+
         # Try each provider until one succeeds
         for provider in providers:
             try:
@@ -76,8 +138,7 @@ class SearchProviderManager:
                 
                 if results:
                     duration_ms = (time.time() - start_time) * 1000
-                    
-                    return SearchResponse(
+                    response = SearchResponse(
                         query=query,
                         query_hash=provider._compute_query_hash(query),
                         results=results,
@@ -86,6 +147,8 @@ class SearchProviderManager:
                         response_time_ms=duration_ms,
                         cached=False
                     )
+                    await self._set_cached(cache_key, response)
+                    return response
                 else:
                     logger.warning(f"Provider {provider.name} returned no results")
                     
