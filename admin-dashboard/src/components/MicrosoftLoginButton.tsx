@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, CircularProgress } from '@mui/material';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
-import { isKeycloakConfigured, oidcConfig } from '../config/authConfig';
+import { isKeycloakConfigured, KEYCLOAK_URL, KEYCLOAK_REALM, CLIENT_ID } from '../config/authConfig';
 
 interface KeycloakLoginButtonProps {
   onError?: (error: Error) => void;
@@ -20,13 +20,14 @@ const KeycloakLoginButton: React.FC<KeycloakLoginButtonProps> = ({ onError }) =>
       const state = crypto.randomUUID();
       sessionStorage.setItem('oidc_state', state);
       const params = new URLSearchParams({
-        client_id: oidcConfig.client_id,
+        client_id: CLIENT_ID,
         redirect_uri: window.location.origin + '/auth/callback',
         response_type: 'code',
         scope: 'openid profile email roles',
         state,
       });
-      window.location.href = `${oidcConfig.authority}/protocol/openid-connect/auth?${params}`;
+      const authority = `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}`;
+      window.location.href = `${authority}/protocol/openid-connect/auth?${params}`;
     } catch (error) {
       console.error('Keycloak login error:', error);
       setLoading(false);

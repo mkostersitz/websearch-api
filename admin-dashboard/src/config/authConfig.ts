@@ -1,9 +1,9 @@
 import { WebStorageStateStore } from 'oidc-client-ts';
 import type { AuthProviderProps } from 'react-oidc-context';
 
-const KEYCLOAK_URL = import.meta.env.VITE_KEYCLOAK_URL || '';
-const KEYCLOAK_REALM = import.meta.env.VITE_KEYCLOAK_REALM || 'websearch';
-const CLIENT_ID = import.meta.env.VITE_KEYCLOAK_CLIENT_ID || '';
+export const KEYCLOAK_URL = import.meta.env.VITE_KEYCLOAK_URL || '';
+export const KEYCLOAK_REALM = import.meta.env.VITE_KEYCLOAK_REALM || 'websearch';
+export const CLIENT_ID = import.meta.env.VITE_KEYCLOAK_CLIENT_ID || '';
 
 export const oidcConfig: AuthProviderProps = {
   authority: `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}`,
