@@ -18,6 +18,6 @@ resources:
 
 images:
   - name: websearch-api
-    newTag: "0.1.1"
+    newTag: "0.1.2"
   - name: websearch-dashboard
-    newTag: "0.1.1"
+    newTag: "0.1.2"
