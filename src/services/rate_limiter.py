@@ -238,16 +238,28 @@ class RateLimiter:
         Returns:
             Tuple of (is_allowed, quota_info)
         """
-        # Check daily quota
-        daily_usage = await self.get_quota_usage(key, "day")
-        daily_remaining = max(0, daily_limit - daily_usage["usage"])
-        
-        # Check monthly quota
-        monthly_usage = await self.get_quota_usage(key, "month")
-        monthly_remaining = max(0, monthly_limit - monthly_usage["usage"])
-        
-        is_allowed = daily_remaining > 0 and monthly_remaining > 0
-        
+        # Check daily quota (-1 means unlimited)
+        if daily_limit == -1:
+            daily_usage = {"usage": 0}
+            daily_remaining = -1
+            daily_ok = True
+        else:
+            daily_usage = await self.get_quota_usage(key, "day")
+            daily_remaining = max(0, daily_limit - daily_usage["usage"])
+            daily_ok = daily_remaining > 0
+
+        # Check monthly quota (-1 means unlimited)
+        if monthly_limit == -1:
+            monthly_usage = {"usage": 0}
+            monthly_remaining = -1
+            monthly_ok = True
+        else:
+            monthly_usage = await self.get_quota_usage(key, "month")
+            monthly_remaining = max(0, monthly_limit - monthly_usage["usage"])
+            monthly_ok = monthly_remaining > 0
+
+        is_allowed = daily_ok and monthly_ok
+
         quota_info = {
             "daily": {
                 "limit": daily_limit,
