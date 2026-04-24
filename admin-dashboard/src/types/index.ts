@@ -145,6 +145,14 @@ export interface ParentalControls {
   block_drugs: boolean;
 }
 
+export interface KeycloakSettings {
+  enabled: boolean;
+  url: string;
+  realm: string;
+  client_id: string;
+  client_secret: string;
+}
+
 export interface SystemSettings {
   otel_endpoint: string;
   search_policy: SearchPolicy;
@@ -155,6 +163,7 @@ export interface SystemSettings {
     jaeger_url: string;
   };
   user_sync?: UserSyncSettings;
+  keycloak?: KeycloakSettings;
 }
 
 export interface UserSyncSettings {

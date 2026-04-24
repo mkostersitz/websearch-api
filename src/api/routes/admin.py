@@ -86,12 +86,21 @@ class UserSyncSettings(BaseModel):
     auto_assign_policies: bool
 
 
+class KeycloakSettings(BaseModel):
+    enabled: bool = False
+    url: str = ""
+    realm: str = "websearch"
+    client_id: str = ""
+    client_secret: str = ""
+
+
 class SystemSettings(BaseModel):
     otel_endpoint: str
     search_policy: SearchPolicySettings
     parental_controls: ParentalControlsSettings
     integrations: IntegrationsSettings
     user_sync: Optional[UserSyncSettings] = None
+    keycloak: Optional[KeycloakSettings] = None
 
 
 @router.get("/stats/overview")
@@ -465,6 +474,13 @@ async def get_settings(
                 "group_sync_enabled": True,
                 "auto_create_users": True,
                 "auto_assign_policies": False
+            },
+            "keycloak": {
+                "enabled": False,
+                "url": "",
+                "realm": "websearch",
+                "client_id": "",
+                "client_secret": ""
             }
         }
         return default_settings

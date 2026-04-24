@@ -80,6 +80,13 @@ export default function Settings() {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvFileName, setCsvFileName] = useState('');
   
+  // Keycloak settings
+  const [keycloakEnabled, setKeycloakEnabled] = useState(false);
+  const [keycloakUrl, setKeycloakUrl] = useState('');
+  const [keycloakRealm, setKeycloakRealm] = useState('websearch');
+  const [keycloakClientId, setKeycloakClientId] = useState('');
+  const [keycloakClientSecret, setKeycloakClientSecret] = useState('');
+
   // Sync status
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [lastSyncStatus, setLastSyncStatus] = useState<'success' | 'failed' | 'pending' | null>(null);
@@ -126,6 +133,14 @@ export default function Settings() {
       setGrafanaUrl(data.integrations?.grafana_url || 'http://localhost:3002');
       setPrometheusUrl(data.integrations?.prometheus_url || 'http://localhost:9091');
       setJaegerUrl(data.integrations?.jaeger_url || 'http://localhost:17686');
+
+      if (data.keycloak) {
+        setKeycloakEnabled(data.keycloak.enabled || false);
+        setKeycloakUrl(data.keycloak.url || '');
+        setKeycloakRealm(data.keycloak.realm || 'websearch');
+        setKeycloakClientId(data.keycloak.client_id || '');
+        setKeycloakClientSecret(data.keycloak.client_secret || '');
+      }
       
       // User sync settings
       if (data.user_sync) {
@@ -255,6 +270,13 @@ export default function Settings() {
         },
       };
 
+      updatedSettings.keycloak = {
+        enabled: keycloakEnabled,
+        url: keycloakUrl,
+        realm: keycloakRealm,
+        client_id: keycloakClientId,
+        client_secret: keycloakClientSecret,
+      };
       await api.updateSettings(updatedSettings);
       setSuccess(true);
       await loadSettings(); // Reload to get server-side updates
@@ -956,6 +978,61 @@ export default function Settings() {
                             />
                             <Alert severity="info">
                               API token should be configured in environment variables for security
+                            </Alert>
+                          </Box>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Keycloak */}
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                          <Typography variant="h6">Keycloak (OIDC)</Typography>
+                          <Switch
+                            checked={keycloakEnabled}
+                            onChange={(e) => setKeycloakEnabled(e.target.checked)}
+                          />
+                        </Box>
+                        {keycloakEnabled && (
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <TextField
+                              fullWidth
+                              label="Keycloak URL"
+                              value={keycloakUrl}
+                              onChange={(e) => setKeycloakUrl(e.target.value)}
+                              placeholder="https://keycloak.example.com"
+                              helperText="Base URL of your Keycloak server"
+                            />
+                            <TextField
+                              fullWidth
+                              label="Realm"
+                              value={keycloakRealm}
+                              onChange={(e) => setKeycloakRealm(e.target.value)}
+                              placeholder="websearch"
+                              helperText="Keycloak realm name"
+                            />
+                            <TextField
+                              fullWidth
+                              label="Client ID"
+                              value={keycloakClientId}
+                              onChange={(e) => setKeycloakClientId(e.target.value)}
+                              placeholder="websearch-api"
+                              helperText="Client ID registered in Keycloak"
+                            />
+                            <TextField
+                              fullWidth
+                              label="Client Secret"
+                              type="password"
+                              value={keycloakClientSecret}
+                              onChange={(e) => setKeycloakClientSecret(e.target.value)}
+                              placeholder="••••••••"
+                              helperText="Client secret from Keycloak credentials tab"
+                            />
+                            <Alert severity="info">
+                              Users with the <strong>websearch-admin</strong> realm role will receive admin access.
+                              All other authenticated users receive agent-level access.
+                              Changes require a service restart to take effect.
                             </Alert>
                           </Box>
                         )}
