@@ -15,3 +15,9 @@ resources:
   - jaeger.yaml
   - otel-collector.yaml
   - ingress.yaml
+
+images:
+  - name: websearch-api
+    newTag: "0.1.0"
+  - name: websearch-dashboard
+    newTag: "0.1.0"
