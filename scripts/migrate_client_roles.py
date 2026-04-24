@@ -6,15 +6,16 @@ Safe to run multiple times (idempotent).
 """
 
 import asyncio
-import sys
-sys.path.insert(0, '/Users/mikek/repos/websearch-api')
+import os
 
 from motor.motor_asyncio import AsyncIOMotorClient
 
 
 async def migrate():
-    client = AsyncIOMotorClient("mongodb://localhost:27017")
-    db = client["websearch_api"]
+    mongo_url = os.environ.get("MONGODB_URL", "mongodb://localhost:27017")
+    db_name = os.environ.get("MONGODB_DB_NAME", "websearch_api")
+    client = AsyncIOMotorClient(mongo_url)
+    db = client[db_name]
 
     clients = db.clients
     total = await clients.count_documents({})
