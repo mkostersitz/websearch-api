@@ -32,6 +32,7 @@ Commands:
   start         Start the WebSearch API
   stop          Stop all services
   restart       Restart all services
+  rebuild       Rebuild app images and rolling-restart pods (k8s mode only)
   api           Start only the API server (local mode only)
   services      Start only MongoDB and Redis (local mode only)
   status        Show service status
@@ -158,8 +159,33 @@ cmd_k8s_status() {
 cmd_k8s_logs() {
     echo -e "${BLUE}Showing Kubernetes API logs (Ctrl+C to stop)...${NC}"
     check_kubectl
-    
+
     kubectl logs -f deployment/websearch-api -n websearch-api
+}
+
+cmd_k8s_rebuild() {
+    echo -e "${BLUE}Rebuilding and rolling out application images...${NC}"
+    check_kubectl
+    check_docker
+
+    VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+    echo -e "${CYAN}Version: ${VERSION}${NC}"
+
+    echo "Building API image..."
+    docker build -t websearch-api:${VERSION} -t websearch-api:latest -f Dockerfile .
+
+    echo "Building Dashboard image..."
+    docker build -t websearch-dashboard:${VERSION} -t websearch-dashboard:latest -f Dockerfile.dashboard .
+
+    echo "Rolling out new images..."
+    kubectl set image deployment/websearch-api api=websearch-api:${VERSION} -n websearch-api
+    kubectl set image deployment/dashboard dashboard=websearch-dashboard:${VERSION} -n websearch-api
+
+    echo "Waiting for rollout..."
+    kubectl rollout status deployment/websearch-api -n websearch-api
+    kubectl rollout status deployment/dashboard -n websearch-api
+
+    echo -e "${GREEN}[OK] Rollout complete (v${VERSION})${NC}"
 }
 
 # ============================================================================
@@ -643,6 +669,13 @@ case "${1:-help}" in
     start) cmd_start ;;
     stop) cmd_stop ;;
     restart) cmd_restart ;;
+    rebuild)
+        if [ "$DEPLOY_MODE" != "k8s" ]; then
+            echo -e "${RED}[ERROR] rebuild is only available in k8s mode${NC}"
+            exit 1
+        fi
+        cmd_k8s_rebuild
+        ;;
     api) 
         validate_local_mode
         cmd_api 

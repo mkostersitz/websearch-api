@@ -8,7 +8,8 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Get the repo root (parent of k8s directory)
 REPO_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 
-echo "=== Building Docker Images ==="
+VERSION=$(grep '^version = ' "$REPO_ROOT/pyproject.toml" | sed 's/version = "\(.*\)"/\1/')
+echo "=== Building Docker Images (v${VERSION}) ==="
 echo "Repository root: $REPO_ROOT"
 
 # Change to repo root for building
@@ -16,11 +17,11 @@ cd "$REPO_ROOT"
 
 # Build API image
 echo "Building API image..."
-docker build -t websearch-api:latest -f Dockerfile .
+docker build -t websearch-api:${VERSION} -t websearch-api:latest -f Dockerfile .
 
 # Build Dashboard image
 echo "Building Dashboard image..."
-docker build -t websearch-dashboard:latest -f Dockerfile.dashboard .
+docker build -t websearch-dashboard:${VERSION} -t websearch-dashboard:latest -f Dockerfile.dashboard .
 
 echo ""
 echo "=== Deploying to Kubernetes ==="
