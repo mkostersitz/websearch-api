@@ -33,6 +33,7 @@ import {
   MenuBook as MenuBookIcon,
 } from '@mui/icons-material';
 import { api } from './services/api';
+import AuthCallback from './components/AuthCallback';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
@@ -246,6 +247,7 @@ function App() {
         <Toolbar />
         <Container maxWidth="xl">
           <Routes>
+            <Route path="/auth/callback" element={<AuthCallback />} />
             {/* Public route - no API key required */}
             <Route path="/request-key" element={<RequestAPIKey />} />
             
