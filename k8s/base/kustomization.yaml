@@ -19,6 +19,6 @@ resources:
 
 images:
   - name: websearch-api
-    newTag: "0.1.6"
+    newTag: "0.1.7"
   - name: websearch-dashboard
-    newTag: "0.1.6"
+    newTag: "0.1.7"
