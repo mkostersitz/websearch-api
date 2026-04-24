@@ -33,7 +33,7 @@ async def get_users(
     limit: int = Query(100, ge=1, le=500)
 ):
     """Get all users."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -72,7 +72,7 @@ async def get_user(
     current_client: dict = Depends(get_api_key_client)
 ):
     """Get a specific user."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -113,7 +113,7 @@ async def update_user(
     current_client: dict = Depends(get_api_key_client)
 ):
     """Update a user."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -174,7 +174,7 @@ async def delete_user(
     current_client: dict = Depends(get_api_key_client)
 ):
     """Delete a user."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -212,7 +212,7 @@ async def get_groups(
     current_client: dict = Depends(get_api_key_client)
 ):
     """Get all groups with user counts."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -269,7 +269,7 @@ async def get_group(
     current_client: dict = Depends(get_api_key_client)
 ):
     """Get a specific group with its members."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -315,7 +315,7 @@ async def import_users_csv(
     current_client: dict = Depends(get_api_key_client)
 ):
     """Import users from CSV file."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"

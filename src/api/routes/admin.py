@@ -19,7 +19,7 @@ router = APIRouter(prefix="/admin", tags=["Admin Dashboard"])
 # Admin verification dependency
 async def verify_admin(current_client: dict = Depends(get_api_key_client)) -> dict:
     """Verify that the current client has admin role"""
-    role = current_client.get("metadata", {}).get("role")
+    role = current_client.get("role")
     if role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -100,7 +100,7 @@ async def get_overview_stats(
 ):
     """Get overview statistics for the dashboard."""
     # Verify admin permissions
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -152,7 +152,7 @@ async def list_all_clients(
 ) -> List[ClientResponse]:
     """List all clients in the system (admin only)."""
     # Verify admin permissions
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -186,7 +186,7 @@ async def get_search_stats(
     days: int = Query(7, ge=1, le=90, description="Number of days to analyze")
 ):
     """Get search statistics over time."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -236,7 +236,7 @@ async def get_provider_stats(
     days: int = Query(7, ge=1, le=90)
 ):
     """Get search provider usage statistics."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -279,7 +279,7 @@ async def get_top_queries(
     days: int = Query(7, ge=1, le=90)
 ):
     """Get most frequent search queries."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -329,7 +329,7 @@ async def get_audit_logs(
     client_id: Optional[str] = Query(None)
 ):
     """Query audit logs with filtering and pagination."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -372,7 +372,7 @@ async def get_system_health(
     current_client: dict = Depends(get_api_key_client)
 ):
     """Get system health metrics."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -425,7 +425,7 @@ async def get_settings(
     current_client: dict = Depends(get_api_key_client)
 ):
     """Get system settings."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -480,7 +480,7 @@ async def update_settings(
     current_client: dict = Depends(get_api_key_client)
 ):
     """Update system settings."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -568,9 +568,9 @@ async def reset_to_defaults(
                 "email": "admin@websearch.local",
                 "name": "Administrator",
                 "groups": ["admins"],
+                "role": "admin",
                 "is_active": True,
                 "metadata": {
-                    "role": "admin",
                     "reset_at": datetime.now(timezone.utc).isoformat()
                 }
             },

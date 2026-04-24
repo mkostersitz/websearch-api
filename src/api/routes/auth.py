@@ -504,7 +504,7 @@ async def login(request: Request, login_request: LoginRequest):
             "email": user.get("email"),
             "name": user.get("name"),
             "groups": user.get("groups", []),
-            "role": user.get("metadata", {}).get("role", "user")
+            "role": user.get("role", "user")
         }
     )
 
@@ -586,7 +586,7 @@ async def create_admin_key(request: Request, key_request: CreateAdminKeyRequest)
         )
     
     # Check if user is admin
-    user_role = user.get("metadata", {}).get("role", "user")
+    user_role = user.get("role", "user")
     if user_role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -635,6 +635,7 @@ async def create_admin_key(request: Request, key_request: CreateAdminKeyRequest)
         "client_name": f"Admin: {user.get('name', user.get('username'))}",
         "client_type": "api_key",
         "owner_id": user["user_id"],
+        "role": "admin",
         "api_key_hash": api_key_hash,
         "quota_per_day": -1,  # Unlimited for admin
         "quota_per_month": -1,  # Unlimited for admin
@@ -642,7 +643,6 @@ async def create_admin_key(request: Request, key_request: CreateAdminKeyRequest)
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc),
         "metadata": {
-            "role": "admin",
             "email": user.get("email"),
             "groups": user.get("groups", [])
         }
