@@ -46,10 +46,11 @@ async def create_admin_client():
         client_name="Admin API Client",
         client_type=ClientType.API_KEY,
         owner_id=admin_user.user_id,
+        role=UserRole.ADMIN,
         api_key_hash=api_key_hash,
         quota_per_day=10000,
         quota_per_month=300000,
-        metadata={"role": "admin", "created_by": "bootstrap"}
+        metadata={"created_by": "bootstrap"}
     )
     
     # Check if client exists

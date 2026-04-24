@@ -32,7 +32,7 @@ async def list_policies(
     limit: int = Query(100, ge=1, le=500)
 ):
     """List all policies."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -65,7 +65,7 @@ async def create_policy(
     current_client: dict = Depends(get_api_key_client)
 ):
     """Create a new policy."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -127,7 +127,7 @@ async def get_policy(
     current_client: dict = Depends(get_api_key_client)
 ):
     """Get a specific policy."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -154,7 +154,7 @@ async def update_policy(
     current_client: dict = Depends(get_api_key_client)
 ):
     """Update a policy."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -234,7 +234,7 @@ async def delete_policy(
     current_client: dict = Depends(get_api_key_client)
 ):
     """Delete a policy."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -279,7 +279,7 @@ async def assign_policy(
     current_client: dict = Depends(get_api_key_client)
 ):
     """Assign policy to users and/or groups."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -336,7 +336,7 @@ async def unassign_policy(
     current_client: dict = Depends(get_api_key_client)
 ):
     """Unassign policy from users and/or groups."""
-    if current_client.get("metadata", {}).get("role") != "admin":
+    if current_client.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"

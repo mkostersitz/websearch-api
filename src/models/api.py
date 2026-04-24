@@ -33,6 +33,7 @@ class ClientResponse(BaseModel):
     client_name: str
     client_type: ClientType
     owner_id: str
+    role: UserRole
     is_active: bool
     quota_per_day: int
     quota_per_month: int

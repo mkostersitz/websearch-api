@@ -6,7 +6,7 @@ from typing import Optional, List
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from loguru import logger
 
-from src.models.database import Client, ClientType
+from src.models.database import Client, ClientType, UserRole
 from src.utils.auth import generate_api_key, hash_api_key
 from src.core.database import Database
 from src.middleware.mtls import extract_cert_info
@@ -23,7 +23,8 @@ class ClientService:
         quota_per_day: int = 1000,
         quota_per_month: int = 30000,
         metadata: Optional[dict] = None,
-        client_cert_pem: Optional[str] = None
+        client_cert_pem: Optional[str] = None,
+        role: UserRole = UserRole.AGENT
     ) -> tuple[Client, Optional[str]]:
         """
         Create a new API client.
@@ -60,7 +61,7 @@ class ClientService:
             client_cert_cn = cert_info["common_name"]
             client_cert_serial = cert_info["serial_number"]
             client_cert_fingerprint = cert_info["fingerprint"]
-            
+
             # Store additional cert info in metadata
             if metadata is None:
                 metadata = {}
@@ -70,12 +71,17 @@ class ClientService:
                 "cert_not_valid_before": cert_info["not_valid_before"],
                 "cert_not_valid_after": cert_info["not_valid_after"]
             })
-        
+
+        # Ensure role cannot be smuggled in via metadata
+        if metadata:
+            metadata.pop("role", None)
+
         client = Client(
             client_id=client_id,
             client_name=client_name,
             client_type=client_type,
             owner_id=owner_id,
+            role=role,
             api_key_hash=api_key_hash,
             client_cert_cn=client_cert_cn,
             client_cert_serial=client_cert_serial,
@@ -184,6 +190,7 @@ class ClientService:
         if quota_per_month is not None:
             update_data["quota_per_month"] = quota_per_month
         if metadata is not None:
+            metadata.pop("role", None)
             update_data["metadata"] = metadata
         
         result = await db.clients.update_one(

@@ -135,7 +135,7 @@ def require_permission(permission: Permission):
                 )
             
             # Get user role from client metadata or default to AGENT
-            role_str = client.get('metadata', {}).get('role', 'agent')
+            role_str = client.get('role', 'agent')
             try:
                 role = UserRole(role_str)
             except ValueError:
@@ -180,7 +180,7 @@ def require_any_permission(permissions: List[Permission]):
                     detail="Authentication required"
                 )
             
-            role_str = client.get('metadata', {}).get('role', 'agent')
+            role_str = client.get('role', 'agent')
             try:
                 role = UserRole(role_str)
             except ValueError:
@@ -224,7 +224,7 @@ def require_role(required_role: UserRole):
                     detail="Authentication required"
                 )
             
-            role_str = client.get('metadata', {}).get('role', 'agent')
+            role_str = client.get('role', 'agent')
             try:
                 role = UserRole(role_str)
             except ValueError:

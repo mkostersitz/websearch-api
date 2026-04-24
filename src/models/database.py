@@ -39,6 +39,7 @@ class Client(BaseModel):
     client_name: str = Field(..., min_length=3, max_length=100)
     client_type: ClientType
     owner_id: str = Field(..., description="User ID of the owner")
+    role: UserRole = Field(default=UserRole.AGENT, description="Client role — not user-settable via API")
     api_key_hash: Optional[str] = None
     certificate_fingerprint: Optional[str] = None
     is_active: bool = True
