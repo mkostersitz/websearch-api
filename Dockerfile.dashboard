@@ -11,6 +11,14 @@ RUN npm ci
 # Copy source
 COPY admin-dashboard/ ./
 
+# Accept Keycloak config at build time so Vite can bake them in
+ARG VITE_KEYCLOAK_URL=""
+ARG VITE_KEYCLOAK_REALM="websearch"
+ARG VITE_KEYCLOAK_CLIENT_ID=""
+ENV VITE_KEYCLOAK_URL=$VITE_KEYCLOAK_URL
+ENV VITE_KEYCLOAK_REALM=$VITE_KEYCLOAK_REALM
+ENV VITE_KEYCLOAK_CLIENT_ID=$VITE_KEYCLOAK_CLIENT_ID
+
 # Build the app
 RUN npm run build
 

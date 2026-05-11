@@ -47,11 +47,11 @@ spec:
             - name: PORT
               value: "8000"
             - name: KEYCLOAK_URL
-              value: ""
+              value: "http://keycloak.keycloak.svc.cluster.local:8080"
             - name: KEYCLOAK_REALM
               value: "websearch"
             - name: KEYCLOAK_CLIENT_ID
-              value: ""
+              value: "websearch-api"
             - name: KEYCLOAK_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
