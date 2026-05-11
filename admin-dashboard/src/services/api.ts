@@ -3,7 +3,7 @@ import type { Client, SearchStats, SystemHealth, OverviewStats, AuditLog, System
 
 class ApiService {
   private client: AxiosInstance;
-  private apiKey: string = '';
+  private bearerToken: string = '';
 
   constructor() {
     this.client = axios.create({
@@ -13,22 +13,21 @@ class ApiService {
       },
     });
 
-    // Add request interceptor to include API key
+    // Attach Bearer token from Keycloak on every request
     this.client.interceptors.request.use((config) => {
-      if (this.apiKey) {
-        config.headers['X-API-Key'] = this.apiKey;
+      if (this.bearerToken) {
+        config.headers['Authorization'] = `Bearer ${this.bearerToken}`;
       }
       return config;
     });
 
-    // Add response interceptor to handle 401 errors
+    // On 401, redirect back to Keycloak login
     this.client.interceptors.response.use(
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          // Clear invalid API key from localStorage
-          localStorage.removeItem('adminApiKey');
-          // Reload to redirect to login
+          // Token expired or invalid — oidc-client-ts will handle silent renew,
+          // but if that fails too the user ends up back at the login screen.
           window.location.reload();
         }
         return Promise.reject(error);
@@ -36,8 +35,13 @@ class ApiService {
     );
   }
 
+  setBearerToken(token: string) {
+    this.bearerToken = token;
+  }
+
+  /** @deprecated Use setBearerToken instead */
   setApiKey(key: string) {
-    this.apiKey = key;
+    this.bearerToken = key;
   }
 
   // Health & Status

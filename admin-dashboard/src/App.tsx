@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from 'react-oidc-context';
 import {
   AppBar,
   Box,
+  Button,
+  CircularProgress,
   Drawer,
   IconButton,
   List,
@@ -31,10 +34,10 @@ import {
   PushPinOutlined as PushPinOutlinedIcon,
   Key as KeyIcon,
   MenuBook as MenuBookIcon,
+  Login as LoginIcon,
 } from '@mui/icons-material';
 import { api } from './services/api';
 import AuthCallback from './components/AuthCallback';
-import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
 import Analytics from './pages/Analytics';
@@ -68,7 +71,7 @@ const navItems: NavItem[] = [
 ];
 
 function App() {
-  const [apiKey, setApiKey] = useState<string>('');
+  const auth = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [drawerPinned, setDrawerPinned] = useState(() => {
     const saved = localStorage.getItem('drawerPinned');
@@ -79,25 +82,16 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Keep the API service token in sync with the OIDC user
   useEffect(() => {
-    const savedKey = localStorage.getItem('adminApiKey');
-    if (savedKey) {
-      setApiKey(savedKey);
-      api.setApiKey(savedKey);
+    if (auth.user?.access_token) {
+      api.setBearerToken(auth.user.access_token);
+    } else {
+      api.setBearerToken('');
     }
-  }, []);
+  }, [auth.user?.access_token]);
 
-  const handleApiKeySuccess = (key: string) => {
-    setApiKey(key);
-    localStorage.setItem('adminApiKey', key);
-    api.setApiKey(key);
-    // Navigate to dashboard after successful login
-    navigate('/');
-  };
-
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
+  const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
   const handleDrawerPin = () => {
     const newPinned = !drawerPinned;
@@ -106,11 +100,51 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('adminApiKey');
-    setApiKey('');
-    api.setApiKey('');
+    auth.signoutRedirect();
   };
 
+  // ── Loading state ──────────────────────────────────────────────────────────
+  if (auth.isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // ── Error state ────────────────────────────────────────────────────────────
+  if (auth.error) {
+    return (
+      <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="100vh" gap={2}>
+        <Typography color="error">Authentication error: {auth.error.message}</Typography>
+        <Button variant="contained" onClick={() => auth.signinRedirect()}>
+          Try again
+        </Button>
+      </Box>
+    );
+  }
+
+  // ── Not authenticated — show login screen ──────────────────────────────────
+  if (!auth.isAuthenticated) {
+    return (
+      <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="100vh" gap={3}>
+        <Typography variant="h4" fontWeight={700}>WebSearch API</Typography>
+        <Typography variant="body1" color="text.secondary">
+          Sign in with your organisation account to access the admin dashboard.
+        </Typography>
+        <Button
+          variant="contained"
+          size="large"
+          startIcon={<LoginIcon />}
+          onClick={() => auth.signinRedirect()}
+        >
+          Sign in with Keycloak
+        </Button>
+      </Box>
+    );
+  }
+
+  // ── Authenticated app shell ────────────────────────────────────────────────
   const drawer = (
     <Box>
       <Toolbar sx={{ backgroundColor: '#000', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -122,7 +156,7 @@ function App() {
             size="small"
             onClick={handleDrawerPin}
             sx={{ color: '#fff' }}
-            title={drawerPinned ? "Unpin sidebar" : "Pin sidebar"}
+            title={drawerPinned ? 'Unpin sidebar' : 'Pin sidebar'}
           >
             {drawerPinned ? <PushPinIcon fontSize="small" /> : <PushPinOutlinedIcon fontSize="small" />}
           </IconButton>
@@ -140,9 +174,7 @@ function App() {
               sx={{
                 '&.Mui-selected': {
                   backgroundColor: 'rgba(25, 118, 210, 0.2)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(25, 118, 210, 0.3)',
-                  },
+                  '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.3)' },
                 },
               }}
             >
@@ -153,6 +185,9 @@ function App() {
         ))}
       </List>
       <Box sx={{ position: 'absolute', bottom: 0, width: '100%', p: 2 }}>
+        <Typography variant="caption" sx={{ px: 1, pb: 1, display: 'block', color: 'grey.500' }}>
+          {auth.user?.profile.email}
+        </Typography>
         <ListItemButton onClick={handleLogout}>
           <ListItemIcon sx={{ color: '#fff' }}>
             <LogoutIcon />
@@ -165,36 +200,31 @@ function App() {
 
   return (
     <Box sx={{ display: 'flex' }}>
-      {/* Show login page if no API key */}
-      {!apiKey ? (
-        <Login onLoginSuccess={handleApiKeySuccess} />
-      ) : (
-        <>
-          <AppBar
-            position="fixed"
-            sx={{
-              width: { md: drawerPinned ? `calc(100% - ${drawerWidth}px)` : '100%' },
-              ml: { md: drawerPinned ? `${drawerWidth}px` : 0 },
-              transition: theme.transitions.create(['margin', 'width'], {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.leavingScreen,
-              }),
-            }}
+      <AppBar
+        position="fixed"
+        sx={{
+          width: { md: drawerPinned ? `calc(100% - ${drawerWidth}px)` : '100%' },
+          ml: { md: drawerPinned ? `${drawerWidth}px` : 0 },
+          transition: theme.transitions.create(['margin', 'width'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
+        }}
+      >
+        <Toolbar>
+          <IconButton
+            color="inherit"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{ mr: 2, display: { md: drawerPinned ? 'none' : 'block' } }}
           >
-            <Toolbar>
-              <IconButton
-                color="inherit"
-                edge="start"
-                onClick={handleDrawerToggle}
-                sx={{ mr: 2, display: { md: drawerPinned ? 'none' : 'block' } }}
-              >
-                <MenuIcon />
-              </IconButton>
-              <Typography variant="h6" noWrap component="div">
-                Admin Dashboard
-              </Typography>
-            </Toolbar>
-          </AppBar>
+            <MenuIcon />
+          </IconButton>
+          <Typography variant="h6" noWrap component="div">
+            Admin Dashboard
+          </Typography>
+        </Toolbar>
+      </AppBar>
 
       <Box
         component="nav"
@@ -218,8 +248,8 @@ function App() {
           onClose={handleDrawerToggle}
           sx={{
             display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
               width: drawerWidth,
               transition: theme.transitions.create('width', {
                 easing: theme.transitions.easing.sharp,
@@ -248,29 +278,20 @@ function App() {
         <Container maxWidth="xl">
           <Routes>
             <Route path="/auth/callback" element={<AuthCallback />} />
-            {/* Public route - no API key required */}
             <Route path="/request-key" element={<RequestAPIKey />} />
-            
-            {/* Protected routes - require API key */}
-            {apiKey && (
-              <>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/clients" element={<Clients />} />
-                <Route path="/users-groups" element={<UsersGroups />} />
-                <Route path="/policies" element={<Policies />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/audit-logs" element={<AuditLogs />} />
-                <Route path="/system-health" element={<SystemHealth />} />
-                <Route path="/docs" element={<Documentation />} />
-                <Route path="/settings" element={<Settings />} />
-              </>
-            )}
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/clients" element={<Clients />} />
+            <Route path="/users-groups" element={<UsersGroups />} />
+            <Route path="/policies" element={<Policies />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/audit-logs" element={<AuditLogs />} />
+            <Route path="/system-health" element={<SystemHealth />} />
+            <Route path="/docs" element={<Documentation />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Container>
       </Box>
-        </>
-      )}
     </Box>
   );
 }

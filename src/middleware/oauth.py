@@ -1,4 +1,4 @@
-"""OAuth authentication middleware for Okta and Entra ID."""
+"""OAuth authentication middleware for Okta, Entra ID, and Keycloak."""
 
 from typing import Optional, Dict, Any
 from fastapi import HTTPException, status, Depends
@@ -202,9 +202,95 @@ class EntraIDProvider(OAuthProvider):
             return None
 
 
+class KeycloakProvider(OAuthProvider):
+    """Keycloak OIDC provider."""
+
+    def __init__(self):
+        self.base_url = settings.keycloak_url
+        self.realm = settings.keycloak_realm
+        self.client_id = settings.keycloak_client_id
+        self.issuer = f"{self.base_url}/realms/{self.realm}"
+        self.jwks_uri = f"{self.issuer}/protocol/openid-connect/certs"
+        self._jwks_cache: Optional[Dict] = None
+
+    async def get_jwks(self) -> Dict:
+        """Fetch JSON Web Key Set from Keycloak."""
+        if self._jwks_cache:
+            return self._jwks_cache
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(self.jwks_uri, timeout=10.0)
+                response.raise_for_status()
+                self._jwks_cache = response.json()
+                return self._jwks_cache
+        except Exception as e:
+            logger.error(f"Failed to fetch Keycloak JWKS: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="OAuth provider unavailable"
+            )
+
+    async def verify_token(self, token: str) -> Optional[Dict[str, Any]]:
+        """Verify Keycloak JWT token."""
+        try:
+            unverified_header = jwt.get_unverified_header(token)
+            kid = unverified_header.get('kid')
+            if not kid:
+                return None
+
+            jwks = await self.get_jwks()
+            signing_key = next(
+                (k for k in jwks.get('keys', []) if k.get('kid') == kid), None
+            )
+
+            # Key not found — JWKS may have rotated, bust cache and retry once
+            if not signing_key:
+                self._jwks_cache = None
+                jwks = await self.get_jwks()
+                signing_key = next(
+                    (k for k in jwks.get('keys', []) if k.get('kid') == kid), None
+                )
+
+            if not signing_key:
+                logger.warning(f"Signing key {kid} not found in Keycloak JWKS")
+                return None
+
+            payload = jwt.decode(
+                token,
+                signing_key,
+                algorithms=['RS256'],
+                audience=self.client_id,
+                issuer=self.issuer,
+            )
+
+            realm_roles = payload.get('realm_access', {}).get('roles', [])
+            groups = payload.get('groups', [])
+
+            user_info = {
+                'sub': payload.get('sub'),
+                'email': payload.get('email'),
+                'name': payload.get('name'),
+                'provider': 'keycloak',
+                'roles': realm_roles,
+                'groups': groups,
+                'claims': payload,
+            }
+
+            logger.info(f"Keycloak token verified for user: {user_info['email']}")
+            return user_info
+
+        except JWTError as e:
+            logger.warning(f"Keycloak JWT verification failed: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Error verifying Keycloak token: {e}")
+            return None
+
+
 # Provider instances
 okta_provider = OktaProvider()
 entra_provider = EntraIDProvider()
+keycloak_provider = KeycloakProvider()
 
 
 async def verify_oauth_token(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> Optional[Dict[str, Any]]:
@@ -233,7 +319,13 @@ async def verify_oauth_token(credentials: Optional[HTTPAuthorizationCredentials]
         user_info = await entra_provider.verify_token(token)
         if user_info:
             return user_info
-    
+
+    # Try Keycloak
+    if settings.keycloak_url:
+        user_info = await keycloak_provider.verify_token(token)
+        if user_info:
+            return user_info
+
     return None
 
 

@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     entra_client_id: str = ""
     entra_client_secret: str = ""
 
+    # OAuth - Keycloak
+    keycloak_url: str = ""
+    keycloak_realm: str = "websearch"
+    keycloak_client_id: str = "websearch-api"
+    keycloak_client_secret: str = ""
+
     # API Security
     api_key_header: str = "X-API-Key"
     jwt_secret_key: str = "change-this-secret-key-in-production"
