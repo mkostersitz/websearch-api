@@ -53,6 +53,10 @@ logs/
 # Docker
 *.dockerignore
 
+# Node
+node_modules/
+admin-dashboard/dist/
+
 # Build artifacts
 *.whl
 
